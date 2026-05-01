@@ -1,0 +1,23 @@
+# Python - Ambiente Virtuale
+.venv/
+venv/
+ENV/
+
+# Python - Cache e file compilati
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Cose momentanee che non mettò
+# Cartella "Lettere"
+# Lettere/
+
+# model.pkl
+model.pkl
+
+# OpenCV e MediaPipe - Residui
+.ipynb_checkpoints/
+
+# Dataset (Opzionale)
+# Se vuoi che il tuo CSV rimanga privato, decommenta la riga sotto:
+# dataset_mediapipe.csv

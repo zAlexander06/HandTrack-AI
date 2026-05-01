@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <link rel="shortcut icon" href="https://pbs.twimg.com/media/FTIuycrUYBIq6KM.jpg" type="image/x-icon">
+
+    <title>Hand Tracking Web</title>
+</head>
+
+<body>
+    <div class="container-app">
+        <h2>Tracciatore Mani Web - MediaPipe</h2>
+        <div class="container-camera">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="output_canvas"></canvas>
+            <canvas id="draw_canvas"></canvas>
+        </div>
+
+        <div class="container-controls">
+            <p id="info">Caricamento modello...</p>
+            <button id="recordBtn">AVVIA REGISTRAZIONE (CSV)</button>
+        </div>
+    </div>
+
+    <script type="module" src="./script/script.js"></script>
+    <script type="module" src="./script/api/backend.js"></script>
+</body>
+
+</html>
