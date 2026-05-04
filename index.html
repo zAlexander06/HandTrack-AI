@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./script/style.css">
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <link rel="shortcut icon" href="https://pbs.twimg.com/media/FTIuycrUYBIq6KM.jpg" type="image/x-icon">
 
@@ -12,22 +13,22 @@
 </head>
 
 <body>
-    <div class="container-app">
-        <h2>Tracciatore Mani Web - MediaPipe</h2>
-        <div class="container-camera">
-            <video id="webcam" autoplay playsinline></video>
-            <canvas id="output_canvas"></canvas>
-            <canvas id="draw_canvas"></canvas>
-        </div>
 
-        <div class="container-controls">
-            <p id="info">Caricamento modello...</p>
-            <button id="recordBtn">AVVIA REGISTRAZIONE (CSV)</button>
-        </div>
+    <div class="container-camera">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="draw_canvas"></canvas>
     </div>
 
-    <script type="module" src="./script/script.js"></script>
-    <script type="module" src="./script/api/backend.js"></script>
+    <div class="container-controls">
+        <p id="info">Caricamento modello...</p>
+        <button id="recordBtn">Avvia Registrazione</button>
+        <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
+        <label for="folderInput" style="cursor:pointer; color:#aaa; font-size:13px">
+            <span id="folderLabel">Scegli cartella</span>
+        </label>
+    </div>
+
+    <script type="module" src="./script/handTrack/base.js"></script>
 </body>
 
 </html>

@@ -1,4 +1,4 @@
-const server = "http://localhost:5050";
+const server = "http://127.0.0.1:5050";
 let server_connesso = false;
 
 export async function verifica_server() {
@@ -31,18 +31,18 @@ export async function salva_csv_backend(cartella, ris) {
     });
 
     try {
-        const response = await fetch(server + "/salva", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+        const response = await fetch('http://localhost:5050/salva', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                cartella: cartella,
-                righe: righe,
-                timestamp: Date.now().toString()
-            }),
+                folder: cartella,
+                landmarks: dati.landmarks,
+                handedness: dati.handedness
+            })
         });
         return response.ok;
     } catch (e) {
-        console.warn("Errore invio server:", e);
+        console.error("Errore invio dati al server C++:", e);
         return false;
     }
 }

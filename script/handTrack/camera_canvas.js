@@ -8,23 +8,35 @@ const connections = [
     [0, 17], [17, 18], [18, 19], [19, 20],
 ];
 
-export function landmarks_canvas(canvas, ctx, landmarks) {
-    const w = canvas.width, h = canvas.height;
+export function landmarks_canvas(canvas, ctx, landmarks, video) {
+    const { scale, offsetX, offsetY } = window.get_cover_transform(video, canvas);
 
     ctx.strokeStyle = "#00C8FF";
     ctx.lineWidth = 2;
 
     connections.forEach(([a, b]) => {
+        const pA = {
+            x: landmarks[a].x * video.videoWidth * scale + offsetX,
+            y: landmarks[a].y * video.videoHeight * scale + offsetY,
+        };
+        const pB = {
+            x: landmarks[b].x * video.videoWidth * scale + offsetX,
+            y: landmarks[b].y * video.videoHeight * scale + offsetY,
+        };
         ctx.beginPath();
-        ctx.moveTo(landmarks[a].x * w, landmarks[a].y * h);
-        ctx.lineTo(landmarks[b].x * w, landmarks[b].y * h);
+        ctx.moveTo(pA.x, pA.y);
+        ctx.lineTo(pB.x, pB.y);
         ctx.stroke();
     });
 
     ctx.fillStyle = "#00FF00";
     landmarks.forEach(lm => {
+        const p = {
+            x: lm.x * video.videoWidth * scale + offsetX,
+            y: lm.y * video.videoHeight * scale + offsetY,
+        };
         ctx.beginPath();
-        ctx.arc(lm.x * w, lm.y * h, 4, 0, 2 * Math.PI);
+        ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
         ctx.fill();
     });
 }

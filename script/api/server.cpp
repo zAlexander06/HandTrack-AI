@@ -53,5 +53,5 @@ int main()
                { res.set_content("pong", "text/plain"); });
 
     std::cout << "-> Server in ascolto su http://localhost:5050\n";
-    server.listen("0.0.0.0", 5050);
+    server.listen("127.0.0.1", 5050);
 }

@@ -1,6 +1,6 @@
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 import { landmarks_canvas, info_panel_canvas, predizione_panel_canvas, topbar_canvas, conferma_overlay_canvas } from "./camera_canvas.js";
-import { verifica_server, salva_csv_backend } from "./api/backend.js";
+import { verifica_server, salva_csv_backend } from "../api/backend.js";
 
 // Costanti
 const smooth_n = 8;
@@ -26,9 +26,6 @@ let ultimo_risultato = null;
 const DETECT_OGNI = 2;
 
 async function initMediaPipe() {
-    const { HandLandmarker, FilesetResolver } = await import(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0"
-    );
     const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
     );
@@ -84,25 +81,25 @@ async function carica_modello_ia() {
 window.startCamera = function (video) {
     if (!video) { console.warn("Oggetto 'video' non trovato"); return; }
 
-    console.log("Camera avviata");
-
     navigator.mediaDevices
-        .getUserMedia({ video: { width: 640, height: 480 } })
+        .getUserMedia({
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "user", }
+        })
         .then(stream => {
             video.srcObject = stream;
-            video.addEventListener("loadeddata", loop_handTracker);
+            video.addEventListener("loadeddata", () => {
+                console.log(`[Camera] Risoluzione: ${video.videoWidth}x${video.videoHeight}`);
+                loop_handTracker();
+            });
         })
         .catch(e => {
             const el = document.getElementById("info");
             if (el) el.textContent = "Errore camera: " + e.message;
+            console.error("[Camera] Errore:", e);
         });
 };
 
 // CSV
-function csv_header() {
-    return ["hand_index", "handedness", "lm_index", "x", "y", "z"].join(",");
-}
-
 function raccogli_csv_files(ris) {
     ris.landmarks.forEach((lms, i) => {
         const handedness = ris.handedness?.[i]?.[0]?.displayName ?? "Unknown";
@@ -114,16 +111,24 @@ function raccogli_csv_files(ris) {
     csv_counter++;
 }
 
-function salva_csv() {
-    if (!csv_row.length) return;
-    const content = [csv_header(), ...csv_row].join("\n");
-    const blob = new Blob([content], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `hand_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+async function gestisci_salvataggio(ris, ha_rilevato_ora) {
+    if (!ha_rilevato_ora || status !== "registrazione" || !ris?.landmarks?.length) return;
+
+    const landmarks_validi = ris.landmarks.filter(lms => mano_visibile(lms, video, canvas));
+    if (landmarks_validi.length === 0) return;
+
+    const dati_per_backend = {
+        landmarks: landmarks_validi,
+        handedness: ris.handedness
+    };
+
+    const salvato = await salva_csv_backend(cartella_dati, dati_per_backend);
+
+    if (salvato) {
+        csv_counter++;
+    } else {
+        raccogli_csv_files(dati_per_backend);
+    }
 }
 
 // Feature vector
@@ -139,6 +144,52 @@ function landmarks_to_feature_vector(handLandmarksList) {
         });
     });
     return feat;
+}
+
+window.get_cover_transform = (video, canvas_el) => {
+    const vW = video.videoWidth, vH = video.videoHeight;
+    const cW = canvas_el.clientWidth, cH = canvas_el.clientHeight;
+
+    const vRatio = vW / vH;
+    const cRatio = cW / cH;
+
+    let scale, offsetX, offsetY;
+
+    if (vRatio > cRatio) {
+        scale = cH / vH;
+        offsetX = (cW - vW * scale) / 2;
+        offsetY = 0;
+    } else {
+        scale = cW / vW;
+        offsetX = 0;
+        offsetY = (cH - vH * scale) / 2;
+    }
+
+    return { scale, offsetX, offsetY };
+}
+
+function lm_to_cover(lm, video, canvas_el) {
+    const { scale, offsetX, offsetY } = get_cover_transform(video, canvas_el);
+    return {
+        x: lm.x * video.videoWidth * scale + offsetX,
+        y: lm.y * video.videoHeight * scale + offsetY,
+    };
+}
+
+function landmark_visibile(lm, video, canvas) {
+    const { scale, offsetX, offsetY } = get_cover_transform(video, canvas);
+
+    const x = lm.x * video.videoWidth * scale + offsetX;
+    const y = lm.y * video.videoHeight * scale + offsetY;
+
+    return x >= 0 && x <= canvas.width &&
+        y >= 0 && y <= canvas.height;
+}
+
+function mano_visibile(landmarks, video, canvas) {
+    if (!landmarks) return false;
+    const lms_array = Array.from(landmarks);
+    return lms_array.every(lm => landmark_visibile(lm, video, canvas));
 }
 
 // Predizione AI
@@ -211,29 +262,37 @@ async function loop_handTracker() {
         return;
     }
 
-    if (canvas.width !== video.videoWidth) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    // Gestione dimensione Canvas
+    if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
     }
 
-    ultimo_video_time = video.currentTime;
+    let ha_rilevato_ora = false;
     frame_count++;
 
+    // Detection a intervalli
     if (frame_count % DETECT_OGNI === 0 && handLandmarker) {
         ultimo_risultato = handLandmarker.detectForVideo(video, performance.now());
+        ha_rilevato_ora = true;
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     const ris = ultimo_risultato;
     let ditaTot = 0, manoSx = null, manoDx = null;
 
     if (ris?.landmarks?.length) {
+        const landmarks_validi = [];
+
         ris.landmarks.forEach((lms, i) => {
+            if (!mano_visibile(lms, video, canvas)) return;
+
+            landmarks_validi.push(lms);
+
             const handedness = ris.handedness?.[i]?.[0]?.displayName ?? "Right";
             const nomeMano = handedness === "Left" ? "Destra" : "Sinistra";
 
-            landmarks_canvas(canvas, ctx, lms);
+            landmarks_canvas(canvas, ctx, lms, video);
 
             const alzate = ditaAlzate(lms, handedness);
             ditaTot += alzate.filter(Boolean).length;
@@ -242,25 +301,45 @@ async function loop_handTracker() {
             else manoDx = lms;
         });
 
-        if (status === "registrazione") {
-            const salvato = await salva_csv_backend(cartella_dati, ris);
-            if (!salvato) raccogli_csv_files(ris);
+        // Salvataggio: Solo se abbiamo dati nuovi e validi
+        if (ha_rilevato_ora && status === "registrazione" && landmarks_validi.length > 0 && !isRecording) {
+            isRecording = true;
+
+            const dati_filtrati = {
+                landmarks: landmarks_validi,
+                handedness: ris.handedness
+            };
+
+            const salvato = await gestisci_salvataggio(ris, ha_rilevato_ora);;
+
+            if (!salvato) raccogli_csv_files(dati_filtrati);
             else csv_counter++;
+
+            isRecording = false;
         }
     }
 
+    // UI e Predizione
     if (manoSx) info_panel_canvas(ctx, ditaAlzate(manoSx, "Left"), 10, 60, "Mano Sinistra");
     if (manoDx) info_panel_canvas(ctx, ditaAlzate(manoDx, "Right"), canvas.width - 230, 60, "Mano Destra");
 
-    const { lettera, confidenza, top3 } = await aggiorna_predizione(ris?.landmarks ?? []);
-    predizione_panel_canvas(canvas, ctx, lettera, confidenza, top3, !!ia_model);
+    // Predizione IA
+    if (ha_rilevato_ora) {
+        const { lettera, confidenza, top3 } = await aggiorna_predizione(ris?.landmarks ?? []);
+        window.ultima_pred = { lettera, confidenza, top3 };
+    }
 
+    if (window.ultima_pred) {
+        const { lettera, confidenza, top3 } = window.ultima_pred;
+        predizione_panel_canvas(canvas, ctx, lettera, confidenza, top3, !!ia_model);
+    }
+
+    // 5. FPS e Topbar
     const now = performance.now();
     ultimo_fps = 1000 / Math.max(now - ultimo_frame_time, 1);
     ultimo_frame_time = now;
 
     topbar_canvas(canvas, ctx, ditaTot, ultimo_fps, status, cartella_dati, csv_counter, !!ia_model);
-
     if (status === "conferma") conferma_overlay_canvas(canvas, ctx, cartella_dati, csv_counter);
 
     requestAnimationFrame(loop_handTracker);
@@ -329,6 +408,14 @@ window.handTracker = async function () {
         if (recordBtn) recordBtn.textContent = "Avvia Registrazione";
     }
 };
+
+const resizeObserver = new ResizeObserver(() => {
+    const canvas = document.getElementById("draw_canvas");
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+});
+
+resizeObserver.observe(document.getElementById("draw_canvas"));
 
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", window.handTracker);

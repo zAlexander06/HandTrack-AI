@@ -1,0 +1,85 @@
+*,
+html,
+body {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+body {
+    background: #1a1a1a;
+    color: #eee;
+    width: 100dvw;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+/* Camera occupa tutto lo schermo */
+.container-camera {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#draw_canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* object-fit: contain; */
+    z-index: 2;
+    pointer-events: none;
+}
+
+#draw_canvas {
+    z-index: 2;
+}
+
+/* Controlli sovrapposti in basso — z-index sopra il canvas */
+.container-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(30, 30, 30, 0.85);
+    padding: 12px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    backdrop-filter: blur(6px);
+}
+
+#info {
+    font-size: 13px;
+    color: #aaa;
+}
+
+button {
+    padding: 10px 20px;
+    cursor: pointer;
+    background: #00e676;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #111;
+}
+
+button:hover {
+    opacity: 0.85;
+}

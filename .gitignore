@@ -18,6 +18,17 @@ model.pkl
 # OpenCV e MediaPipe - Residui
 .ipynb_checkpoints/
 
+# cartella dei 'moduli node.js' -> ci sarà un file bat che automizza tutto
+node_modules/
+
+# Dipendenze Node
+node_modules/
+package-lock.json
+
+# File di sistema e log
+.DS_Store
+npm-debug.log*
+
 # Dataset (Opzionale)
 # Se vuoi che il tuo CSV rimanga privato, decommenta la riga sotto:
 # dataset_mediapipe.csv
