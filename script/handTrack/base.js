@@ -5,25 +5,31 @@ import { verifica_server, salva_csv_backend } from "../api/backend.js";
 // Costanti
 const smooth_n = 8;
 const n_landmarks = 21;
+const DETECT_OGNI = 2;
+const model_url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task";
 
 // Variabili globali
+let handLandmarker = null;
+let ultimo_risultato = null;
 let ultimo_video_time = -1;
-let pred_buf = [];
-let csv_row = [];
-let csv_counter = 0;
+let frame_count = 0;
 let ultimo_fps = 0;
 let ultimo_frame_time = performance.now();
+
+let pred_buf = [];
+let ultima_pred = { lettera: null, confidenza: 0, top3: [] };
+
+let csv_row = [];
+let csv_counter = 0;
+let salvataggio_in_corso = false;
 let isRecording = false;
-let status = "fermo";    // fermo | conferma | registrazione
+
+let status = "fermo"; // fermo | conferma | registrazione
 let cartella_dati = "";
+
 let ia_model = null;
 let label = [];
 
-const model_url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task";
-let handLandmarker = null;
-let frame_count = 0;
-let ultimo_risultato = null;
-const DETECT_OGNI = 2;
 
 async function initMediaPipe() {
     const vision = await FilesetResolver.forVisionTasks(
@@ -88,47 +94,78 @@ window.startCamera = function (video) {
         .then(stream => {
             video.srcObject = stream;
             video.addEventListener("loadeddata", () => {
-                console.log(`[Camera] Risoluzione: ${video.videoWidth}x${video.videoHeight}`);
+                console.log(`Risoluzione Camera: ${video.videoWidth}x${video.videoHeight}`);
                 loop_handTracker();
             });
         })
         .catch(e => {
             const el = document.getElementById("info");
             if (el) el.textContent = "Errore camera: " + e.message;
-            console.error("[Camera] Errore:", e);
+            console.error("Errore camera:", e);
         });
 };
 
 // CSV
+function csv_header() {
+    return ["hand_index", "handedness", "lm_index", "x", "y", "z"].join(",");
+}
+
 function raccogli_csv_files(ris) {
     ris.landmarks.forEach((lms, i) => {
         const handedness = ris.handedness?.[i]?.[0]?.displayName ?? "Unknown";
         lms.forEach((lm, j) => {
-            csv_row.push([i, handedness, j,
-                lm.x.toFixed(6), lm.y.toFixed(6), lm.z.toFixed(6)].join(","));
+            csv_row.push([i, handedness, j, lm.x.toFixed(6), lm.y.toFixed(6), lm.z.toFixed(6)].join(","));
         });
     });
-    csv_counter++;
 }
 
-async function gestisci_salvataggio(ris, ha_rilevato_ora) {
-    if (!ha_rilevato_ora || status !== "registrazione" || !ris?.landmarks?.length) return;
+async function gestisci_salvataggio(ris, video, canvas) {
+    if (status !== "registrazione" || !ris?.landmarks?.length) return;
 
-    const landmarks_validi = ris.landmarks.filter(lms => mano_visibile(lms, video, canvas));
-    if (landmarks_validi.length === 0) return;
+    const mani_filtrate = ris.landmarks
+        .map((lms, i) => ({ lms, handinfo: (ris.handedness && ris.handedness[i]) ? ris.handedness[i] : [] }))
+        .filter(({ lms }) => mano_visibile(lms, video, canvas));
 
-    const dati_per_backend = {
-        landmarks: landmarks_validi,
-        handedness: ris.handedness
+    if (mani_filtrate.length === 0) return;
+
+    const dati = {
+        cartella: cartella_dati,
+        timestamp: Date.now(),
+        righe: mani_filtrate.flatMap((m, i) => {
+            const handedness = (m.handinfo && m.handinfo[0]) ? m.handinfo[0].displayName : "Unknown";
+            return m.lms.map((lm, j) => {
+                return [i, handedness, j, lm.x.toFixed(6), lm.y.toFixed(6), lm.z.toFixed(6)];
+            });
+        }),
+        landmarks: mani_filtrate.map(m => m.lms),
+        handedness: mani_filtrate.map(m => m.handinfo)
     };
 
-    const salvato = await salva_csv_backend(cartella_dati, dati_per_backend);
-
-    if (salvato) {
-        csv_counter++;
-    } else {
-        raccogli_csv_files(dati_per_backend);
+    try {
+        const salvato = await salva_csv_backend(cartella_dati, dati);
+        if (salvato) {
+            csv_counter++;
+        } else {
+            raccogli_csv_files(dati);
+            csv_counter++;
+        }
+    } catch (e) {
+        console.error("Errore fetch backend:", e);
     }
+}
+
+function salva_csv() {
+    if (!csv_row.length) return;
+
+    const contenuto = [csv_header(), ...csv_row].join("\n");
+    const blob = new Blob([contenuto], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `${cartella_dati || "dataset"}_backup.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 // Feature vector
@@ -146,13 +183,15 @@ function landmarks_to_feature_vector(handLandmarksList) {
     return feat;
 }
 
-window.get_cover_transform = (video, canvas_el) => {
+// transform
+function get_cover_transform(video, canvas_el) {
     const vW = video.videoWidth, vH = video.videoHeight;
     const cW = canvas_el.clientWidth, cH = canvas_el.clientHeight;
 
+    if (!vW || !vH || !cW || !cH) return { scale: 1, offsetX: 0, offsetY: 0 };
+
     const vRatio = vW / vH;
     const cRatio = cW / cH;
-
     let scale, offsetX, offsetY;
 
     if (vRatio > cRatio) {
@@ -168,28 +207,16 @@ window.get_cover_transform = (video, canvas_el) => {
     return { scale, offsetX, offsetY };
 }
 
-function lm_to_cover(lm, video, canvas_el) {
-    const { scale, offsetX, offsetY } = get_cover_transform(video, canvas_el);
-    return {
-        x: lm.x * video.videoWidth * scale + offsetX,
-        y: lm.y * video.videoHeight * scale + offsetY,
-    };
-}
-
 function landmark_visibile(lm, video, canvas) {
     const { scale, offsetX, offsetY } = get_cover_transform(video, canvas);
-
     const x = lm.x * video.videoWidth * scale + offsetX;
     const y = lm.y * video.videoHeight * scale + offsetY;
-
-    return x >= 0 && x <= canvas.width &&
-        y >= 0 && y <= canvas.height;
+    return x >= 0 && x <= canvas.width && y >= 0 && y <= canvas.height;
 }
 
 function mano_visibile(landmarks, video, canvas) {
     if (!landmarks) return false;
-    const lms_array = Array.from(landmarks);
-    return lms_array.every(lm => landmark_visibile(lm, video, canvas));
+    return Array.from(landmarks).every(lm => landmark_visibile(lm, video, canvas));
 }
 
 // Predizione AI
@@ -242,9 +269,7 @@ async function aggiorna_predizione(landmarks) {
 // Dita alzate
 function ditaAlzate(landmarks, handedness) {
     const alzate = [];
-    alzate.push(handedness === "Right"
-        ? landmarks[4].x > landmarks[3].x
-        : landmarks[4].x < landmarks[3].x);
+    alzate.push(handedness === "Right" ? landmarks[4].x > landmarks[3].x : landmarks[4].x < landmarks[3].x);
     [[8, 6], [12, 10], [16, 14], [20, 18]].forEach(([punta, pip]) => {
         alzate.push(landmarks[punta].y < landmarks[pip].y);
     });
@@ -268,31 +293,44 @@ async function loop_handTracker() {
         canvas.height = canvas.clientHeight;
     }
 
-    let ha_rilevato_ora = false;
     frame_count++;
+    let ha_rilevato_ora = false;
 
     // Detection a intervalli
     if (frame_count % DETECT_OGNI === 0 && handLandmarker) {
-        ultimo_risultato = handLandmarker.detectForVideo(video, performance.now());
+        const ris = handLandmarker.detectForVideo(video, performance.now());
+        ultimo_risultato = ris;
         ha_rilevato_ora = true;
+
+        if (status === "registrazione" && !salvataggio_in_corso && ris?.landmarks?.length > 0) {
+            salvataggio_in_corso = true;
+            gestisci_salvataggio(ris, video, canvas)
+                .finally(() => { salvataggio_in_corso = false; });
+        }
+
+        aggiorna_predizione(ris?.landmarks ?? []).then(
+            pred => { ultima_pred = pred; }
+        );
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     const ris = ultimo_risultato;
+    if (!ris) {
+        requestAnimationFrame(loop_handTracker);
+        return;
+    }
+
     let ditaTot = 0, manoSx = null, manoDx = null;
 
-    if (ris?.landmarks?.length) {
-        const landmarks_validi = [];
-
+    if (ris.landmarks?.length) {
         ris.landmarks.forEach((lms, i) => {
             if (!mano_visibile(lms, video, canvas)) return;
-
-            landmarks_validi.push(lms);
 
             const handedness = ris.handedness?.[i]?.[0]?.displayName ?? "Right";
             const nomeMano = handedness === "Left" ? "Destra" : "Sinistra";
 
-            landmarks_canvas(canvas, ctx, lms, video);
+            landmarks_canvas(canvas, ctx, lms, video, get_cover_transform);
 
             const alzate = ditaAlzate(lms, handedness);
             ditaTot += alzate.filter(Boolean).length;
@@ -300,23 +338,6 @@ async function loop_handTracker() {
             if (nomeMano === "Sinistra") manoSx = lms;
             else manoDx = lms;
         });
-
-        // Salvataggio: Solo se abbiamo dati nuovi e validi
-        if (ha_rilevato_ora && status === "registrazione" && landmarks_validi.length > 0 && !isRecording) {
-            isRecording = true;
-
-            const dati_filtrati = {
-                landmarks: landmarks_validi,
-                handedness: ris.handedness
-            };
-
-            const salvato = await gestisci_salvataggio(ris, ha_rilevato_ora);;
-
-            if (!salvato) raccogli_csv_files(dati_filtrati);
-            else csv_counter++;
-
-            isRecording = false;
-        }
     }
 
     // UI e Predizione
@@ -324,17 +345,9 @@ async function loop_handTracker() {
     if (manoDx) info_panel_canvas(ctx, ditaAlzate(manoDx, "Right"), canvas.width - 230, 60, "Mano Destra");
 
     // Predizione IA
-    if (ha_rilevato_ora) {
-        const { lettera, confidenza, top3 } = await aggiorna_predizione(ris?.landmarks ?? []);
-        window.ultima_pred = { lettera, confidenza, top3 };
-    }
+    predizione_panel_canvas(canvas, ctx, ultima_pred.lettera, ultima_pred.confidenza, ultima_pred.top3, !!ia_model);
 
-    if (window.ultima_pred) {
-        const { lettera, confidenza, top3 } = window.ultima_pred;
-        predizione_panel_canvas(canvas, ctx, lettera, confidenza, top3, !!ia_model);
-    }
-
-    // 5. FPS e Topbar
+    // FPS e Topbar
     const now = performance.now();
     ultimo_fps = 1000 / Math.max(now - ultimo_frame_time, 1);
     ultimo_frame_time = now;
@@ -359,7 +372,10 @@ window.handTracker = async function () {
 
     document.addEventListener("keydown", e => {
         switch (e.key) {
-            case "f": case "F": folderInput?.click(); break;
+            case "f": case "F":
+                if (!server_connesso) folderInput?.click();
+                else console.log("Scelta cartella disabilitata: il server gestisce i percorsi.");
+                break;
             case "s": case "S":
                 if (status === "conferma") startRecording();
                 else if (status === "registrazione") stopRecording();
@@ -383,12 +399,16 @@ window.handTracker = async function () {
 
     recordBtn?.addEventListener("click", () => {
         if (status === "fermo") {
-            cartella_dati = cartella_dati || "download";
+            cartella_dati = cartella_dati || (verifica_server() ? "Segni" : "Download");
+
             status = "conferma";
-            if (recordBtn) recordBtn.textContent = "Conferma (S) / Annulla (Esc)";
-        } else if (status === "conferma") {
+            recordBtn.textContent = "Conferma (S) / Annulla (Esc)";
+            recordBtn.classList.add("btn-confirm");
+        }
+        else if (status === "conferma") {
             startRecording();
-        } else if (status === "registrazione") {
+        }
+        else if (status === "registrazione") {
             stopRecording();
         }
     });
@@ -396,27 +416,35 @@ window.handTracker = async function () {
     function startRecording() {
         csv_row = [];
         csv_counter = 0;
-        isRecording = true;
         status = "registrazione";
-        if (recordBtn) recordBtn.textContent = "STOP & Scarica CSV";
+        if (recordBtn) recordBtn.textContent = "STOP (S)";
+        console.log("Registrazione avviata...");
     }
 
     function stopRecording() {
-        isRecording = false;
         status = "fermo";
-        salva_csv();
+        isRecording = false;
+
+        if (csv_row.length > 0 && csv_counter === 0) {
+            console.log("Salvataggio server fallito o non configurato. Scarico manuale...");
+            salva_csv();
+        } else {
+            console.log(`Registrazione terminata. Salvati ${csv_counter} frame sul server.`);
+        }
+
         if (recordBtn) recordBtn.textContent = "Avvia Registrazione";
     }
 };
 
 const resizeObserver = new ResizeObserver(() => {
     const canvas = document.getElementById("draw_canvas");
+    if (!canvas) return;
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
 });
-
 resizeObserver.observe(document.getElementById("draw_canvas"));
 
+// Avvio
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", window.handTracker);
 } else {
@@ -424,6 +452,7 @@ if (document.readyState === "loading") {
 }
 
 //////////////////////////////////////////////////////
+
 // funzioni per i get e set 'globali'
 window.getCartellaCSV = () => cartella_dati;
 window.getCounterCSV = () => csv_counter;

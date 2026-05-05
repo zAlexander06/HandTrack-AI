@@ -32,16 +32,23 @@ function startCppBackend() {
     });
 }
 
+function inviaAlBackend(dati) {
+    if (cppProcess && cppProcess.stdin.writable) {
+        const jsonString = JSON.stringify(dati);
+        cppProcess.stdin.write(jsonString + "\n");
+    }
+}
+
 function cleanup() {
     if (cppProcess) {
-        console.log("[Backend] Chiusura server C++...");
+        console.log("\nChiusura server C++...");
         cppProcess.kill();
     }
     process.exit(0);
 }
 
 process.on('SIGINT', cleanup);   // Ctrl+C
-process.on('SIGTERM', cleanup);   // kill
+// process.on('SIGTERM', cleanup);   // kill
 process.on('exit', cleanup);
 
 const rootPath = path.join(__dirname, '..');

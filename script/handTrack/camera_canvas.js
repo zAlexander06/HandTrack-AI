@@ -1,3 +1,5 @@
+// import { get_cover_transform } from "./base.js";
+
 const nome_dita = ["Pollice", "Indice", "Medio", "Anulare", "Mignolo"];
 
 const connections = [
@@ -8,8 +10,8 @@ const connections = [
     [0, 17], [17, 18], [18, 19], [19, 20],
 ];
 
-export function landmarks_canvas(canvas, ctx, landmarks, video) {
-    const { scale, offsetX, offsetY } = window.get_cover_transform(video, canvas);
+export function landmarks_canvas(canvas, ctx, landmarks, video, get_cover_transform) {
+    const { scale, offsetX, offsetY } = get_cover_transform(video, canvas);
 
     ctx.strokeStyle = "#00C8FF";
     ctx.lineWidth = 2;
@@ -151,28 +153,37 @@ export function topbar_canvas(canvas, ctx, dita_tot, fps, status, cartella_dati,
     ctx.textAlign = "left";
 }
 
-export function conferma_overlay_canvas(canvas, ctx, cartella_dati, csv_counter) {
+export function conferma_overlay_canvas(canvas, ctx, cartella_dati, csv_counter, server_connesso) {
     const w = canvas.width, h = canvas.height;
 
-    ctx.fillStyle = "rgba(10,30,10,0.55)";
+    ctx.fillStyle = "rgba(10,20,10,0.85)";
     ctx.fillRect(0, 0, w, h);
+
+    const statusBackend = server_connesso ? { text: "● BACKEND C++ ATTIVO", color: "#00FF00" } : { text: "○ MODALITÀ LOCALE (DOWNLOAD)", color: "#FFA500" };
+
     const lines = [
-        { text: "Cartella selezionata:", color: "#B4B4B4", size: 16 },
-        { text: cartella_dati || "—", color: "#50FF78", size: 22 },
-        { text: `CSV presenti: ${csv_counter}`, color: "#B4B4B4", size: 15 },
-        { text: "", color: "", size: 10 },
-        { text: "[S]  Inizia registrazione", color: "#00DC64", size: 24 },
-        { text: "[Esc]  Annulla", color: "#6464FF", size: 16 },
+        { text: statusBackend.text, color: statusBackend.color, size: 14, bold: true },
+        { text: "", color: "", size: 5 },
+        { text: "Segno / Cartella:", color: "#B4B4B4", size: 16 },
+        { text: (statusBackend) ? cartella_dati + " (stessa root)" : "" || "—", color: "#50FF78", size: 28, bold: true },
+        { text: `Frame catturati: ${csv_counter}`, color: "#B4B4B4", size: 15 },
+        { text: "", color: "", size: 20 },
+        { text: "[S]  INIZIA REGISTRAZIONE", color: "#00DC64", size: 24, bold: true },
+        { text: "[Esc]  Annulla", color: "#FF6464", size: 16 },
     ];
 
-    let y = h / 2 - 80;
-    lines.forEach(({ text, color, size }) => {
-        if (!text) { y += 15; return; }
-        ctx.font = `${size}px sans-serif`;
+    let y = h / 2 - 100;
+    lines.forEach(({ text, color, size, bold }) => {
+        if (text === "") { y += size; return; }
+
+        ctx.font = `${bold ? 'bold ' : ''}${size}px sans-serif`;
         ctx.fillStyle = color;
         ctx.textAlign = "center";
+        ctx.shadowColor = "black";
+        ctx.shadowBlur = 4;
         ctx.fillText(text, w / 2, y);
+        ctx.shadowBlur = 0;
         ctx.textAlign = "left";
-        y += size * 2.2;
+        y += size * 1.8;
     });
 }

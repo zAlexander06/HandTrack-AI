@@ -8,8 +8,7 @@
                 "${default}",
                 "D:/msys64/ucrt64/include/opencv4",
                 "D:/msys64/mingw64/include",
-                "D:/msys64/ucrt64/include",
-                "C:/Users/Alexander/Documents/Scuola/Informatica/Python/Progetto Lis/prova python html/header"
+                "D:/msys64/ucrt64/include"
             ],
             "defines": [
                 "_DEBUG",

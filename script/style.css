@@ -83,3 +83,9 @@ button {
 button:hover {
     opacity: 0.85;
 }
+
+#labelCartellaDownload {
+    cursor: pointer;
+    color: #aaa;
+    font-size: 13px
+}
