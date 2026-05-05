@@ -12,7 +12,9 @@
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
                 "-Iheader",
                 "-lws2_32",
-                "-lpthread"
+                "-lpthread",
+                "-lssl",
+                "-lcrypto"
             ],
             "options": {
                 "cwd": "D:/msys64/ucrt64/bin"
