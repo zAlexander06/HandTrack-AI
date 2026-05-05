@@ -1,12 +1,17 @@
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 import { landmarks_canvas, info_panel_canvas, predizione_panel_canvas, topbar_canvas, conferma_overlay_canvas } from "./camera_canvas.js";
-import { verifica_server, salva_csv_backend } from "../api/backend.js";
+import { isServerConnesso, verifica_server, salva_csv_backend } from "../api/backend.js";
 
 // Costanti
 const smooth_n = 8;
 const n_landmarks = 21;
 const DETECT_OGNI = 2;
 const model_url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task";
+
+const alfabeto_it = new Set([
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'L',
+    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'Z'
+]);
 
 // Variabili globali
 let handLandmarker = null;
@@ -111,46 +116,47 @@ function csv_header() {
 }
 
 function raccogli_csv_files(ris) {
+    const infoMani = ris.handednesses ?? ris.handedness ?? [];
+
     ris.landmarks.forEach((lms, i) => {
-        const handedness = ris.handedness?.[i]?.[0]?.displayName ?? "Unknown";
-        lms.forEach((lm, j) => {
-            csv_row.push([i, handedness, j, lm.x.toFixed(6), lm.y.toFixed(6), lm.z.toFixed(6)].join(","));
+        const info = infoMani?.[i]?.[0];
+        const hand = info?.displayName ?? info?.categoryName ?? "Unknown";
+
+        Array.from(lms).forEach((lm, j) => {
+            csv_row.push([i, hand, j,
+                lm.x.toFixed(6), lm.y.toFixed(6), lm.z.toFixed(6)].join(","));
         });
     });
 }
 
 async function gestisci_salvataggio(ris, video, canvas) {
-    if (status !== "registrazione" || !ris?.landmarks?.length) return;
+    if (!isRecording || !ris?.landmarks?.length) return;
 
-    const mani_filtrate = ris.landmarks
-        .map((lms, i) => ({ lms, handinfo: (ris.handedness && ris.handedness[i]) ? ris.handedness[i] : [] }))
-        .filter(({ lms }) => mano_visibile(lms, video, canvas));
+    const raw = ris.handednesses ?? ris.handedness ?? [];
 
-    if (mani_filtrate.length === 0) return;
+    const indici_visibili = ris.landmarks
+        .map((_, i) => i)
+        .filter(i => mano_visibile(ris.landmarks[i], video, canvas));
 
-    const dati = {
-        cartella: cartella_dati,
-        timestamp: Date.now(),
-        righe: mani_filtrate.flatMap((m, i) => {
-            const handedness = (m.handinfo && m.handinfo[0]) ? m.handinfo[0].displayName : "Unknown";
-            return m.lms.map((lm, j) => {
-                return [i, handedness, j, lm.x.toFixed(6), lm.y.toFixed(6), lm.z.toFixed(6)];
-            });
-        }),
-        landmarks: mani_filtrate.map(m => m.lms),
-        handedness: mani_filtrate.map(m => m.handinfo)
+    if (!indici_visibili.length) return;
+
+    const ris_filtrato = {
+        landmarks: indici_visibili.map(i => ris.landmarks[i]),
+        handednesses: indici_visibili.map(i => raw[i] ?? []),
     };
 
     try {
-        const salvato = await salva_csv_backend(cartella_dati, dati);
+        const salvato = await salva_csv_backend(cartella_dati, ris_filtrato);
         if (salvato) {
             csv_counter++;
         } else {
-            raccogli_csv_files(dati);
+            raccogli_csv_files(ris_filtrato);
             csv_counter++;
         }
     } catch (e) {
-        console.error("Errore fetch backend:", e);
+        console.error("[CSV] Errore:", e.message);
+        raccogli_csv_files(ris_filtrato);
+        csv_counter++;
     }
 }
 
@@ -324,10 +330,13 @@ async function loop_handTracker() {
     let ditaTot = 0, manoSx = null, manoDx = null;
 
     if (ris.landmarks?.length) {
+        const infoMani = ris.handednesses ?? ris.handedness ?? [];
+
         ris.landmarks.forEach((lms, i) => {
             if (!mano_visibile(lms, video, canvas)) return;
 
-            const handedness = ris.handedness?.[i]?.[0]?.displayName ?? "Right";
+            const info = infoMani?.[i]?.[0];
+            const handedness = info?.displayName ?? "Right";
             const nomeMano = handedness === "Left" ? "Destra" : "Sinistra";
 
             landmarks_canvas(canvas, ctx, lms, video, get_cover_transform);
@@ -370,21 +379,38 @@ window.handTracker = async function () {
     await initMediaPipe();
     window.startCamera(video);
 
-    document.addEventListener("keydown", e => {
+    window.addEventListener("keydown", (e) => {
+        const keyUpper = e.key.toUpperCase();
+
+        if (alfabeto_it.has(keyUpper)) {
+            if (status === "registrazione") return;
+
+            cartella_dati = keyUpper;
+            status = "conferma";
+
+            if (recordBtn) {
+                recordBtn.textContent = `Conferma [${cartella_dati}] (Enter) / Annulla (Esc)`;
+                recordBtn.style.backgroundColor = "#ffc107";
+            }
+            return;
+        }
+
         switch (e.key) {
-            case "f": case "F":
-                if (!server_connesso) folderInput?.click();
-                else console.log("Scelta cartella disabilitata: il server gestisce i percorsi.");
-                break;
-            case "s": case "S":
+            case "Enter":
                 if (status === "conferma") startRecording();
                 else if (status === "registrazione") stopRecording();
                 break;
             case "Escape":
-                if (status === "conferma") status = "fermo";
-                else if (status === "registrazione") stopRecording();
+                if (status === "conferma" || status === "registrazione") {
+                    if (status === "registrazione") stopRecording();
+                    status = "fermo";
+                    cartella_dati = "";
+                    if (recordBtn) {
+                        recordBtn.textContent = "Avvia Registrazione";
+                        recordBtn.style.backgroundColor = "";
+                    }
+                }
                 break;
-            case "r": case "R": carica_modello_ia(); break;
         }
     });
 
@@ -399,10 +425,10 @@ window.handTracker = async function () {
 
     recordBtn?.addEventListener("click", () => {
         if (status === "fermo") {
-            cartella_dati = cartella_dati || (verifica_server() ? "Segni" : "Download");
+            cartella_dati = cartella_dati || (isServerConnesso() ? "Segni" : "Download");
 
             status = "conferma";
-            recordBtn.textContent = "Conferma (S) / Annulla (Esc)";
+            recordBtn.textContent = "Conferma (Enter) / Annulla (Esc)";
             recordBtn.classList.add("btn-confirm");
         }
         else if (status === "conferma") {
@@ -416,6 +442,7 @@ window.handTracker = async function () {
     function startRecording() {
         csv_row = [];
         csv_counter = 0;
+        isRecording = true;
         status = "registrazione";
         if (recordBtn) recordBtn.textContent = "STOP (S)";
         console.log("Registrazione avviata...");
@@ -425,7 +452,7 @@ window.handTracker = async function () {
         status = "fermo";
         isRecording = false;
 
-        if (csv_row.length > 0 && csv_counter === 0) {
+        if (csv_row.length > 0) {
             console.log("Salvataggio server fallito o non configurato. Scarico manuale...");
             salva_csv();
         } else {

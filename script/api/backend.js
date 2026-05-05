@@ -5,22 +5,21 @@ export async function verifica_server() {
     const labelDlDir = document.getElementById("labelCartellaDownload");
 
     try {
-        const risp = await fetch(server + "/ping", {
+        const risp = await fetch(`${server}/ping`, {
             signal: AbortSignal.timeout(2000)
         });
 
         server_connesso = (await risp.text()) === "pong";
-        console.log(server_connesso ? "Server Connesso" : "Server Non Connesso");
+        console.log(server_connesso ? "Server Connesso" : "Server Non connesso");
 
-        if (server_connesso && labelDlDir) {
-            labelDlDir.style.display = "none";
-        }
-    }
-    catch (e) {
+        if (labelDlDir)
+            labelDlDir.style.display = server_connesso ? "none" : "inline-block";
+
+    } catch (e) {
         server_connesso = false;
-        console.warn("Errore di connessione al server:" + e);
+        console.warn("Errore connessione:", e.message);
 
-        labelDlDir.style.display = "inline-block";
+        if (labelDlDir) labelDlDir.style.display = "inline-block";
     }
 
     return server_connesso;
@@ -29,12 +28,14 @@ export async function verifica_server() {
 export async function salva_csv_backend(cartella, ris) {
     if (!server_connesso || !ris?.landmarks?.length) return false;
 
+    const infoMani = ris.handednesses ?? ris.handedness ?? [];
+
     const righe_csv = ris.landmarks.flatMap((lms, i) => {
-        const handedness = ris.handedness?.[i]?.[0]?.displayName ?? "Unknown";
+        const info = infoMani?.[i]?.[0];
+        const label = info?.displayName ?? info?.categoryName ?? "Unknown";
+
         return Array.from(lms).map((lm, j) => [
-            i,
-            handedness,
-            j,
+            i, label, j,
             lm.x.toFixed(6),
             lm.y.toFixed(6),
             lm.z.toFixed(6)
@@ -42,15 +43,14 @@ export async function salva_csv_backend(cartella, ris) {
     });
 
     try {
-        const response = await fetch(server + "/salva", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const response = await fetch(`${server}/salva`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                // IMPORTANTE SE SI VUOLE CAMBIARE LA ROOT DEL SALVATAGGIO
-                cartella: "../../" + cartella,
+                cartella,
                 timestamp: Date.now().toString(),
-                righe: righe_csv
-            })
+                righe: righe_csv,
+            }),
         });
         return response.ok;
     } catch (e) {
@@ -59,3 +59,5 @@ export async function salva_csv_backend(cartella, ris) {
         return false;
     }
 }
+
+export const isServerConnesso = () => { return server_connesso; }

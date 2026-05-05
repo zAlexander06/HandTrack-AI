@@ -7,48 +7,62 @@
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-bool salva_dati_csv(const std::string &cartella, const std::string &timestamp, const json &righe)
+std::string root_dir = "";
+std::string dataset_dir = "Segni";
+
+void configura_dataset(int argc, char *argv[])
+{
+    for (int i = 0; i < argc - 1; ++i)
+    {
+        std::string arg = argv[i];
+        if (arg == "--root")
+            root_dir = argv[i + 1];
+        if (arg == "--dataset")
+            dataset_dir = argv[i + 1];
+    }
+
+    if (root_dir.empty())
+        root_dir = fs::current_path().parent_path().parent_path().string();
+
+    std::cout << "[Config] Root: " << root_dir << "\n";
+    std::cout << "[Config] Dataset: " << dataset_dir << "\n";
+}
+
+bool salva_dati_csv(const std::string &nome_cartella, const std::string &ts, const json &righe)
 {
     try
     {
-        fs::path dir_destinazione;
+        fs::path root_path = fs::current_path().parent_path().parent_path();
+        fs::path dir_dest = root_path / dataset_dir / nome_cartella;
 
-        if (fs::path(cartella).is_absolute())
-        {
-            dir_destinazione = cartella;
-        }
-        else
-        {
-            dir_destinazione = fs::current_path() / cartella;
-        }
+        if (!fs::exists(dir_dest))
+            fs::create_directories(dir_dest);
 
-        fs::create_directories(dir_destinazione);
+        std::string file_path = (dir_dest / ("hand_" + ts + ".csv")).string();
+        std::ofstream f(file_path);
 
-        fs::path path_file = dir_destinazione / ("hand_" + timestamp + ".csv");
-        std::ofstream f(path_file);
         if (!f.is_open())
-        {
-            std::cerr << "[X] Impossibile aprire: " << path_file << "\n";
             return false;
-        }
 
-        for (const auto &riga : righe)
+        for (auto &riga : righe)
         {
             for (size_t i = 0; i < riga.size(); ++i)
             {
-                f << (riga[i].is_string() ? riga[i].get<std::string>() : riga[i].dump());
+                if (riga[i].is_string())
+                    f << riga[i].get<std::string>();
+                else
+                    f << riga[i].dump();
                 if (i < riga.size() - 1)
                     f << ",";
             }
             f << "\n";
         }
-
-        std::cout << "Salvato: " << path_file.filename() << "\n";
+        f.close();
         return true;
     }
     catch (const std::exception &e)
     {
-        std::cerr << "\n[X] Errore scrittura: " << e.what() << "\n";
+        std::cerr << "Errore C++: " << e.what() << std::endl;
         return false;
     }
 }
@@ -60,8 +74,10 @@ void setup_cors(httplib::Response &res)
     res.set_header("Access-Control-Allow-Headers", "Content-Type");
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    configura_dataset(argc, argv);
+
     httplib::Server server;
 
     server.set_pre_routing_handler([](const httplib::Request &, httplib::Response &res)
@@ -72,24 +88,40 @@ int main()
     server.Options(".*", [](const httplib::Request &, httplib::Response &res)
                    { res.status = 204; });
 
+    // PARTE DEL SALVATAGGIO
     server.Post("/salva", [](const httplib::Request &req, httplib::Response &res)
                 {
-        try {
-            auto body = json::parse(req.body);
-            std::string cartella = body.value("cartella",  "dataset");
-            std::string timestamp = body.value("timestamp", "0");
-            auto righe = body["righe"];
-
-            if (salva_dati_csv(cartella, timestamp, righe)) {
-                res.set_content("ok", "text/plain");
-            } else {
-                res.status = 500;
-                res.set_content("Errore scrittura file", "text/plain");
-            }
-        } catch (const std::exception& e) {
+    try {
+        auto body = json::parse(req.body);
+        
+        if (!body.contains("cartella") || !body.contains("righe")) {
             res.status = 400;
-            res.set_content(std::string("JSON non valido: ") + e.what(), "text/plain");
-        } });
+            res.set_content("Missing fields", "text/plain");
+            return;
+        }
+
+        std::string cartella = body["cartella"];
+        std::string timestamp = body.value("timestamp", "0");
+        auto righe = body["righe"];
+
+        const std::string lettere_valide = "ABCDEFGHILMNOPQRSTUVZ";
+            if (cartella.size() != 1 || lettere_valide.find(cartella[0]) == std::string::npos) {
+                res.status = 400;
+                res.set_content("Lettera non valida", "text/plain");
+                return;
+            }
+
+        if (salva_dati_csv(cartella, timestamp, righe)) {
+            std::cout << "Salvato frame per lettera: " << cartella << "\n";
+            res.set_content("ok", "text/plain");
+        } else {
+            res.status = 500;
+            res.set_content("Errore disco", "text/plain");
+        }
+    } catch (const std::exception& e) {
+        res.status = 400;
+        res.set_content(e.what(), "text/plain");
+    } });
 
     server.Get("/ping", [](const httplib::Request &, httplib::Response &res)
                { res.set_content("pong", "text/plain"); });
