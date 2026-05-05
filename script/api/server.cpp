@@ -1,4 +1,4 @@
-#include "httplib.h"
+#include "header/httplib.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
     server.Get("/ping", [](const httplib::Request &, httplib::Response &res)
                { res.set_content("pong", "text/plain"); });
 
-    std::cout << "Cartella di lavoro: " << fs::current_path() << "\n";
+    std::cout << "\nCartella di lavoro: " << fs::current_path() << "\n";
     std::cout << "Attivo su http://127.0.0.1:5050\n\n";
 
     server.listen("127.0.0.1", 5050);

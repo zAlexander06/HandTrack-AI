@@ -18,7 +18,7 @@ function startCppBackend() {
         return;
     }
 
-    console.log(`\nAvvio da: ${cppServerPath}`);
+    console.log(`Avvio da: ${cppServerPath}`);
 
     cppProcess = spawn(cppServerPath, [
         "--root", rootPath,
@@ -62,7 +62,7 @@ app.listen(PORT, (err) => {
     console.log("========================================");
     console.log(`FRONTEND:  http://localhost:${PORT}`);
     console.log(`PROGETTO:  ${rootProject}`);
-    console.log("========================================\n");
+    console.log("========================================\n\n");
 
     startCppBackend();
 });
