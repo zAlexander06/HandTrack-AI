@@ -61,3 +61,4 @@ export async function salva_csv_backend(cartella, ris) {
 }
 
 export const isServerConnesso = () => { return server_connesso; }
+export const getServer = () => { return server; }

@@ -1,6 +1,6 @@
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 import { landmarks_canvas, info_panel_canvas, predizione_panel_canvas, topbar_canvas, conferma_overlay_canvas } from "./camera_canvas.js";
-import { isServerConnesso, verifica_server, salva_csv_backend } from "../api/backend.js";
+import { isServerConnesso, getServer, verifica_server, salva_csv_backend } from "../api/backend.js";
 
 // Costanti
 const smooth_n = 8;
@@ -462,6 +462,30 @@ window.handTracker = async function () {
         if (recordBtn) recordBtn.textContent = "Avvia Registrazione";
     }
 };
+
+// bottone per il training
+document.getElementById("trainBtn")?.addEventListener("click", async () => {
+    const btn = document.getElementById("trainBtn");
+
+    if (!confirm("L'addestramento userà i dati salvati nelle cartelle. Continuare?")) return;
+
+    btn.disabled = true;
+    btn.textContent = "Addestramento in corso...";
+
+    try {
+        const res = await fetch(getServer() + "/train", { method: "POST" });
+        if (res.ok) {
+            alert("Il server ha avviato Python. Controlla la console del server per i progressi.");
+        } else {
+            alert("Errore nell'avvio dell'addestramento.");
+        }
+    } catch (e) {
+        alert("Impossibile comunicare con il server C++.");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Allena Modello IA";
+    }
+});
 
 const resizeObserver = new ResizeObserver(() => {
     const canvas = document.getElementById("draw_canvas");

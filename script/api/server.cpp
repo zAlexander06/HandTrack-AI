@@ -123,6 +123,27 @@ int main(int argc, char *argv[])
         res.set_content(e.what(), "text/plain");
     } });
 
+    // PARTE DEL TRAINING
+    server.Post("/train", [](const httplib::Request &, httplib::Response &res)
+                {
+    std::cout << "Avvio Addestramento IA (.venv)" << std::endl;
+
+    std::string python_path = "../../.venv/Scripts/python.exe";
+    std::string script_path = "training.py";
+
+    std::string comando = python_path + " " + script_path;
+
+    std::string full_command = "start /B " + comando;
+
+    int result = system(full_command.c_str());
+
+    if (result == 0) {
+        res.set_content("Training avviato in background", "text/plain");
+    } else {
+        res.status = 500;
+        res.set_content("Errore nell'avvio dello script", "text/plain");
+    } });
+
     server.Get("/ping", [](const httplib::Request &, httplib::Response &res)
                { res.set_content("pong", "text/plain"); });
 
