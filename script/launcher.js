@@ -18,7 +18,7 @@ function startCppBackend() {
         return;
     }
 
-    console.log(`Avvio da: ${cppServerPath}`);
+    console.log(`Avvio da: ${cppServerPath}\n`);
 
     cppProcess = spawn(cppServerPath, [
         "--root", rootPath,
