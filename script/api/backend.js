@@ -30,17 +30,25 @@ export async function salva_csv_backend(cartella, ris) {
 
     const infoMani = ris.handednesses ?? ris.handedness ?? [];
 
-    const righe_csv = ris.landmarks.flatMap((lms, i) => {
-        const info = infoMani?.[i]?.[0];
-        const label = info?.displayName ?? info?.categoryName ?? "Unknown";
+    const righe_csv = [];
 
-        return Array.from(lms).map((lm, j) => [
-            i, label, j,
-            lm.x.toFixed(6),
-            lm.y.toFixed(6),
-            lm.z.toFixed(6)
-        ]);
-    });
+    for (let i = 0; i < ris.landmarks.length; i++) {
+        const lms = ris.landmarks[i];
+        const info = infoMani?.[i]?.[0];
+
+        let label = info?.displayName ?? info?.categoryName ?? "Unknown";
+
+        for (let j = 0; j < lms.length; j++) {
+            const lm = lms[j];
+
+            righe_csv.push([
+                i, label, j,
+                lm.x.toFixed(6),
+                lm.y.toFixed(6),
+                lm.z.toFixed(6)
+            ]);
+        }
+    }
 
     try {
         const response = await fetch(`${server}/salva`, {

@@ -1,4 +1,7 @@
 import os
+import sys
+import shutil
+import subprocess
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -12,18 +15,18 @@ tf.get_logger().setLevel('ERROR')
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-import tf2onnx
 import json
 
-dataset_path = "../../Segni"
+dataset_dir = "../../Segni"
 alfabeto_it = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'Z']
+output_dir = "../modello"
 
-def carica_dataset():
+def carica_addestra_modello():
     x_data = []
     y_labels = []
 
     for lettera in alfabeto_it:
-        cartella_lettera = os.path.join(dataset_path, lettera)
+        cartella_lettera = os.path.join(dataset_dir, lettera)
         if not os.path.exists(cartella_lettera): continue
 
         print(f"Caricamento lettera: {lettera}...")
@@ -35,58 +38,110 @@ def carica_dataset():
 
                 landmarks = file.iloc[:, 3:6].values.astype(np.float32)
 
-                if len(landmarks) == 21:
-                    polso = landmarks[0]
-                    landmarks = landmarks - polso
-                    
-                    flat_landmarks = landmarks.flatten()
-                    
-                    x_data.append(flat_landmarks)
-                    y_labels.append(lettera)
+                if len(landmarks) != 21:
+                    print(f"Landmarks non validi in {file_csv}")
+                    continue
+
+                polso = landmarks[0]
+                landmarks = landmarks - polso
+
+                if landmarks[5][0] < 0:
+                    landmarks[:, 0] *= -1
+
+                max_val = np.max(np.abs(landmarks))
+                if max_val > 0:
+                    landmarks = landmarks / max_val
+
+                flat_landmarks = landmarks.flatten()
+
+                x_data.append(flat_landmarks)
+                y_labels.append(lettera)
+
             except Exception as e:
                 print(f"Errore nel file {file_csv}: {e}")
+                continue
 
-    return np.array(x_data), np.array(y_labels)
+    if not x_data:
+        print("Nessun dato trovato")
+        return
+    
+    # Divisione dati
+    x = np.array(x_data)
+    label_encoder = LabelEncoder()
+    y = label_encoder.fit_transform(y_labels)
 
-# Caricamento
-x, y = carica_dataset()
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
+    )
 
-if len(x) == 0:
-    print("Errore: Nessun dato trovato! Controlla il percorso del dataset.\n")
-    exit()
+    # Modello
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(63,)),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dropout(0.3),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(len(alfabeto_it), activation='softmax')
+    ])
 
-# Encoding etichette
-label_encoder = LabelEncoder()
-y_encoded = label_encoder.fit_transform(y)
+    model.compile(
+        optimizer='adam',
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
 
-# Divisione dati
-x_train, x_test, y_train, y_test = train_test_split(x, y_encoded, test_size=0.2, random_state=42)
+    # inizio addestramento
+    print("\nInizio addestramento...")
+    model.fit(
+        x_train, y_train,
+        epochs=60,
+        batch_size=32,
+        validation_data=(x_test, y_test)
+    )
 
-# Modello
-model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(63,)),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dense(len(alfabeto_it), activation='softmax')
-])
+    # Accuratezza finale
+    perdita, acc = model.evaluate(x_test, y_test)
+    print(f"\nAccuratezza finale: {acc:.4f}")
 
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    # Esportazione in ONNX
+    print("\nPreparazione esportazione ONNX...")
 
-# inizio addestramento
-print("\nInizio addestramento...")
-model.fit(x_train, y_train, epochs=60, batch_size=32, validation_data=(x_test, y_test))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"\nCartella creata: {output_dir}\n")
 
-# Esportazione in ONNX
-print("\nEsportazione in ONNX...")
-spec = (tf.TensorSpec((None, 63), tf.float32, name="float_input"),)
-output_path = "modello_lis_italiano.onnx"
+    onnx_path = os.path.join(output_dir, "modello_lis_italiano.onnx")
+    json_labels_path = os.path.join(output_dir, "labels.json")
+    temp_model_dir = "temp_saved_model"
 
-model_proto, _ = tf2onnx.convert.from_keras(model, input_signature=spec, opset=13)
-with open(output_path, "wb") as f: f.write(model_proto.SerializeToString())
+    try:
+        model.export(temp_model_dir)
+        
+        cmd = [
+            sys.executable, "-m", "tf2onnx.convert",
+            "--saved-model", temp_model_dir,
+            "--output", onnx_path,
+            "--opset", "13"
+        ]
 
-print(f"Successo! Modello salvato come: {output_path}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"\nModello creato: {onnx_path}")
 
-# Salviamo le etichette
-with open("labels.json", "w") as f:
-    json.dump(list(label_encoder.classes_), f)
+            with open(json_labels_path, "w") as f: json.dump(list(label_encoder.classes_), f)
+            print(f"labels.json salvato.")
+
+        else:
+            print(f"\nErrore tf2onnx:\n{result.stderr}")
+            
+    finally:
+        if os.path.exists(temp_model_dir):
+            shutil.rmtree(temp_model_dir)
+            print(f"\nCartella temporanea eliminata.")
+
+if __name__ == "__main__":
+    carica_addestra_modello()

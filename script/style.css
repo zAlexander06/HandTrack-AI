@@ -44,10 +44,6 @@ video {
     pointer-events: none;
 }
 
-#draw_canvas {
-    z-index: 2;
-}
-
 /* Controlli sovrapposti in basso — z-index sopra il canvas */
 .container-controls {
     position: fixed;

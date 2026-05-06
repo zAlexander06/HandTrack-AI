@@ -8,10 +8,6 @@ ENV/
 *.py[cod]
 *$py.class
 
-# Cose momentanee che non mettò
-# Cartella "Lettere"
-# Lettere/
-
 # model.pkl
 model.pkl
 
@@ -29,6 +25,11 @@ package-lock.json
 .DS_Store
 npm-debug.log*
 
-# Dataset (Opzionale)
-# Se vuoi che il tuo CSV rimanga privato, decommenta la riga sotto:
-# dataset_mediapipe.csv
+# Cose momentanee che non mettò
+# Cartella "Lettere" e "Segni"
+# Lettere/
+Segni/
+
+# Dataset (ONNX)
+modello_lis_italiano.onnx
+labels.json

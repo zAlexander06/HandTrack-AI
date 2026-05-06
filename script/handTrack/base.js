@@ -132,7 +132,9 @@ function raccogli_csv_files(ris) {
 async function gestisci_salvataggio(ris, video, canvas) {
     if (!isRecording || !ris?.landmarks?.length) return;
 
-    const raw = ris.handednesses ?? ris.handedness ?? [];
+    if (!Array.isArray(ris.landmarks)) return;
+
+    const raw_handedness = ris.handedness ?? ris.handednesses ?? [];
 
     const indici_visibili = ris.landmarks
         .map((_, i) => i)
@@ -142,11 +144,29 @@ async function gestisci_salvataggio(ris, video, canvas) {
 
     const ris_filtrato = {
         landmarks: indici_visibili.map(i => ris.landmarks[i]),
-        handednesses: indici_visibili.map(i => raw[i] ?? []),
+
+        handedness: indici_visibili.map(i => {
+            const info = raw_handedness[i]?.[0];
+            if (!info) return [];
+
+            const correctedInfo = { ...info };
+            const labelRaw = info.displayName ?? info.categoryName;
+
+            if (labelRaw === "Left") {
+                correctedInfo.displayName = "Right";
+                correctedInfo.categoryName = "Right";
+            } else if (labelRaw === "Right") {
+                correctedInfo.displayName = "Left";
+                correctedInfo.categoryName = "Left";
+            }
+
+            return [correctedInfo];
+        })
     };
 
     try {
         const salvato = await salva_csv_backend(cartella_dati, ris_filtrato);
+
         if (salvato) {
             csv_counter++;
         } else {
@@ -154,7 +174,7 @@ async function gestisci_salvataggio(ris, video, canvas) {
             csv_counter++;
         }
     } catch (e) {
-        console.error("[CSV] Errore:", e.message);
+        console.error("[CSV] Errore durante il salvataggio:", e.message);
         raccogli_csv_files(ris_filtrato);
         csv_counter++;
     }
@@ -293,30 +313,25 @@ async function loop_handTracker() {
         return;
     }
 
-    // Gestione dimensione Canvas
     if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
     }
 
     frame_count++;
-    let ha_rilevato_ora = false;
 
-    // Detection a intervalli
     if (frame_count % DETECT_OGNI === 0 && handLandmarker) {
         const ris = handLandmarker.detectForVideo(video, performance.now());
         ultimo_risultato = ris;
-        ha_rilevato_ora = true;
 
-        if (status === "registrazione" && !salvataggio_in_corso && ris?.landmarks?.length > 0) {
+        if (status === "registrazione" && !salvataggio_in_corso && ris?.landmarks?.length) {
             salvataggio_in_corso = true;
             gestisci_salvataggio(ris, video, canvas)
                 .finally(() => { salvataggio_in_corso = false; });
         }
 
-        aggiorna_predizione(ris?.landmarks ?? []).then(
-            pred => { ultima_pred = pred; }
-        );
+        aggiorna_predizione(ris?.landmarks ?? [])
+            .then(pred => { ultima_pred = pred; });
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -330,33 +345,35 @@ async function loop_handTracker() {
     let ditaTot = 0, manoSx = null, manoDx = null;
 
     if (ris.landmarks?.length) {
-        const infoMani = ris.handednesses ?? ris.handedness ?? [];
+        const infoMani = ris.handedness ?? ris.handednesses ?? [];
 
         ris.landmarks.forEach((lms, i) => {
             if (!mano_visibile(lms, video, canvas)) return;
 
-            const info = infoMani?.[i]?.[0];
-            const handedness = info?.displayName ?? "Right";
-            const nomeMano = handedness === "Left" ? "Destra" : "Sinistra";
+            const raw = infoMani[i]?.[0]?.displayName ?? "Right";
+
+            const isLeftRaw = raw === "Left";
+            const hand = isLeftRaw ? "Right" : "Left";
+            const nome = isLeftRaw ? "Destra" : "Sinistra";
 
             landmarks_canvas(canvas, ctx, lms, video, get_cover_transform);
 
-            const alzate = ditaAlzate(lms, handedness);
-            ditaTot += alzate.filter(Boolean).length;
+            const dita = ditaAlzate(lms, hand);
+            const count = dita.filter(Boolean).length;
+            ditaTot += count;
 
-            if (nomeMano === "Sinistra") manoSx = lms;
-            else manoDx = lms;
+            if (nome === "Sinistra") manoSx = { lms, hand, dita };
+            else manoDx = { lms, hand, dita };
         });
     }
 
-    // UI e Predizione
-    if (manoSx) info_panel_canvas(ctx, ditaAlzate(manoSx, "Left"), 10, 60, "Mano Sinistra");
-    if (manoDx) info_panel_canvas(ctx, ditaAlzate(manoDx, "Right"), canvas.width - 230, 60, "Mano Destra");
+    // UI Pannelli laterali: usiamo i dati estratti nel loop
+    if (manoSx) info_panel_canvas(ctx, manoSx.dita, 10, 60, "Mano Sinistra");
+    if (manoDx) info_panel_canvas(ctx, manoDx.dita, canvas.width - 230, 60, "Mano Destra");
 
-    // Predizione IA
+    // Predizione IA, FPS e Topbar rimangono invariati
     predizione_panel_canvas(canvas, ctx, ultima_pred.lettera, ultima_pred.confidenza, ultima_pred.top3, !!ia_model);
 
-    // FPS e Topbar
     const now = performance.now();
     ultimo_fps = 1000 / Math.max(now - ultimo_frame_time, 1);
     ultimo_frame_time = now;
@@ -373,6 +390,7 @@ window.handTracker = async function () {
     const recordBtn = document.getElementById("recordBtn");
     const folderInput = document.getElementById("folderInput");
     const folderLabel = document.getElementById("folderLabel");
+    const btnTraining = document.getElementById("trainBtn");
 
     await verifica_server();
     await carica_modello_ia();
@@ -439,6 +457,30 @@ window.handTracker = async function () {
         }
     });
 
+    // bottone per il training
+    btnTraining?.addEventListener("click", async () => {
+        const btn = btnTraining;
+
+        if (!confirm("L'addestramento userà i dati salvati nelle cartelle. Continuare?")) return;
+
+        btn.disabled = true;
+        btn.textContent = "Addestramento in corso...";
+
+        try {
+            const res = await fetch(getServer() + "/train", { method: "POST" });
+            if (res.ok) {
+                alert("Il server ha avviato Python. Controlla la console del server per i progressi.");
+            } else {
+                alert("Errore nell'avvio dell'addestramento.");
+            }
+        } catch (e) {
+            alert("Impossibile comunicare con il server C++.");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Allena Modello IA";
+        }
+    });
+
     function startRecording() {
         csv_row = [];
         csv_counter = 0;
@@ -462,30 +504,6 @@ window.handTracker = async function () {
         if (recordBtn) recordBtn.textContent = "Avvia Registrazione";
     }
 };
-
-// bottone per il training
-document.getElementById("trainBtn")?.addEventListener("click", async () => {
-    const btn = document.getElementById("trainBtn");
-
-    if (!confirm("L'addestramento userà i dati salvati nelle cartelle. Continuare?")) return;
-
-    btn.disabled = true;
-    btn.textContent = "Addestramento in corso...";
-
-    try {
-        const res = await fetch(getServer() + "/train", { method: "POST" });
-        if (res.ok) {
-            alert("Il server ha avviato Python. Controlla la console del server per i progressi.");
-        } else {
-            alert("Errore nell'avvio dell'addestramento.");
-        }
-    } catch (e) {
-        alert("Impossibile comunicare con il server C++.");
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "Allena Modello IA";
-    }
-});
 
 const resizeObserver = new ResizeObserver(() => {
     const canvas = document.getElementById("draw_canvas");
