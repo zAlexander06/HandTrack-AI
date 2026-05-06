@@ -62,7 +62,7 @@ app.listen(PORT, (err) => {
     console.log("========================================");
     console.log(`FRONTEND:  http://localhost:${PORT}`);
     console.log(`PROGETTO:  ${rootProject}`);
-    console.log("========================================\n\n");
+    console.log("========================================\n");
 
     startCppBackend();
 });
