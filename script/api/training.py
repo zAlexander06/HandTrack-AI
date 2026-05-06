@@ -1,7 +1,15 @@
 import os
+
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['ABSL_MIN_LOG_LEVEL'] = '3'
+
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+
+tf.get_logger().setLevel('ERROR')
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import tf2onnx
@@ -44,7 +52,7 @@ def carica_dataset():
 x, y = carica_dataset()
 
 if len(x) == 0:
-    print("Errore: Nessun dato trovato! Controlla il percorso del dataset.")
+    print("Errore: Nessun dato trovato! Controlla il percorso del dataset.\n")
     exit()
 
 # Encoding etichette
