@@ -67,24 +67,23 @@ async function initMediaPipe() {
 // Caricamento modello IA (ONNX)
 async function carica_modello_ia() {
     try {
-        const [onnxRes, labelsRes] = await Promise.all([
-            fetch("./model.onnx"),
-            fetch("./labels.json"),
-        ]);
+        const pathONNX = "./script/modello/modello_lis_italiano.onnx";
+        const pathJSON = "./script/modello/labels.json";
 
-        if (!onnxRes.ok || !labelsRes.ok) {
-            console.warn("IA:\nFile modello non trovati, modalità solo raccolta dati");
+        const check = await fetch(pathJSON);
+        if (!check.ok) {
+            console.warn("IA: Modello non trovato, modalità solo raccolta dati.");
             return;
         }
 
         [ia_model, label] = await Promise.all([
-            ort.InferenceSession.create("./model.onnx"),
-            fetch("./labels.json").then(r => r.json()),
+            ort.InferenceSession.create(pathONNX),
+            check.json()
         ]);
 
-        console.log("AI:\nModello caricato — classi:", label);
+        console.log("AI: Modello caricato con successo! Classi:", label);
     } catch (e) {
-        console.warn("AI:\nErrore caricamento modello:", e);
+        console.error("AI: Errore durante il caricamento:", e);
     }
 }
 
@@ -195,17 +194,32 @@ function salva_csv() {
 }
 
 // Feature vector
-function landmarks_to_feature_vector(handLandmarksList) {
-    const feat = new Float32Array(n_landmarks * 3 * 2);
-    handLandmarksList.slice(0, 2).forEach((lms, hi) => {
-        const wx = lms[0].x, wy = lms[0].y, wz = lms[0].z;
-        const off = hi * n_landmarks * 3;
-        lms.forEach((pt, li) => {
-            feat[off + li * 3] = pt.x - wx;
-            feat[off + li * 3 + 1] = pt.y - wy;
-            feat[off + li * 3 + 2] = pt.z - wz;
-        });
+function landmarks_to_feature_vector(handLandmarks) {
+    const n_punti = 21;
+    const feat = new Float32Array(n_punti * 3);
+
+    const wx = handLandmarks[0].x;
+    const wy = handLandmarks[0].y;
+    const wz = handLandmarks[0].z;
+
+    handLandmarks.forEach((pt, i) => {
+        const index = i * 3;
+        feat[index] = pt.x - wx;
+        feat[index + 1] = pt.y - wy;
+        feat[index + 2] = pt.z - wz;
     });
+
+    let maxVal = 0;
+    feat.forEach(v => {
+        if (Math.abs(v) > maxVal) maxVal = Math.abs(v);
+    });
+
+    if (maxVal > 0) {
+        for (let i = 0; i < feat.length; i++) {
+            feat[i] /= maxVal;
+        }
+    }
+
     return feat;
 }
 
@@ -251,19 +265,37 @@ async function predici_lettera(landmarks) {
         return { lettera: null, confidenza: 0, top3: [] };
 
     const feat = landmarks_to_feature_vector(landmarks);
+
+    if (feat.length !== 63) {
+        console.error(`Errore Dimensioni: attesi 63, ottenuti ${feat.length}. Verificare landmarks_to_feature_vector.`);
+        return { lettera: null, confidenza: 0, top3: [] };
+    }
+
     const tensor = new ort.Tensor("float32", feat, [1, feat.length]);
-    const output = await ia_model.run({ input: tensor });
 
-    const proba = output["probabilities"].data;
+    try {
+        const feeds = { "keras_tensor": tensor };
+        const output = await ia_model.run(feeds);
 
-    const top3idx = Array.from(proba)
-        .map((prob, i) => ({ prob, i }))
-        .sort((a, b) => b.prob - a.prob)
-        .slice(0, 3);
+        const outputName = ia_model.outputNames[0];
+        const proba = output[outputName].data;
 
-    const top3 = top3idx.map(({ prob, i }) => [label[i], prob]);
+        const top3idx = Array.from(proba)
+            .map((prob, i) => ({ prob, i }))
+            .sort((a, b) => b.prob - a.prob)
+            .slice(0, 3);
 
-    return { lettera: top3[0][0], confidenza: top3[0][1], top3 };
+        const top3 = top3idx.map(({ prob, i }) => [label[i], prob]);
+
+        return {
+            lettera: top3[0][0],
+            confidenza: top3[0][1],
+            top3
+        };
+    } catch (e) {
+        console.error("Errore durante l'esecuzione del modello:", e);
+        return { lettera: null, confidenza: 0, top3: [] };
+    }
 }
 
 async function aggiorna_predizione(landmarks) {
