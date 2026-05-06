@@ -29,16 +29,6 @@ package-lock.json
 .DS_Store
 npm-debug.log*
 
-# solo per il "branch" VINCI
-.vscode/
-imgs/
-script/
-start.bat
-requirements.txt
-package.json
-index.html
-
-
 # Dataset (Opzionale)
 # Se vuoi che il tuo CSV rimanga privato, decommenta la riga sotto:
 # dataset_mediapipe.csv
