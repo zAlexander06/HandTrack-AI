@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandTrackLIS — Chiamata Attiva</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="../CSS/style.css" rel="stylesheet">
+<style>
+/* ── Layout ─────────────────────────────────────────────── */
+#call-body       { flex:1; display:flex; height:calc(100vh - 60px); overflow:hidden; }
+#video-area      { flex:1; position:relative; background:#0a0a0a; overflow:hidden; }
+
+/* ── Speaker view ───────────────────────────────────────── */
+#speaker-view    { position:absolute; inset:0; z-index:1; }
+#main-video-box  { width:100%; height:100%; border-radius:0; border:none;
+                   background:linear-gradient(135deg,#111827,#1e293b);
+                   display:flex; align-items:center; justify-content:center;
+                   position:relative; overflow:hidden; transition:box-shadow .3s; }
+#main-video-box.active-glow { box-shadow:inset 0 0 0 3px #22c55e; }
+#main-video      { width:100%; height:100%; object-fit:cover; display:none; }
+
+/* ── Grid view ──────────────────────────────────────────── */
+#grid-view       { position:absolute; inset:0; z-index:1; display:none;
+                   grid-template-columns:1fr 1fr; padding:16px; gap:12px; }
+#grid-view.visible { display:grid; }
+
+.grid-tile       { border-radius:12px; background:linear-gradient(135deg,#111827,#1e293b);
+                   position:relative; overflow:hidden; min-height:0;
+                   transition:box-shadow .3s; }
+.grid-tile.speaker { box-shadow:0 0 0 3px #22c55e; }
+.grid-tile video { width:100%; height:100%; object-fit:cover; display:none; }
+.tile-ph         { position:absolute; inset:0; display:flex; flex-direction:column;
+                   align-items:center; justify-content:center; gap:8px;
+                   color:#64748b; font-size:11px; pointer-events:none; }
+.tile-avatar     { width:52px; height:52px; border-radius:50%; display:flex;
+                   align-items:center; justify-content:center;
+                   font-size:18px; font-weight:700; color:#fff; }
+.tile-name       { position:absolute; bottom:10px; left:10px;
+                   background:rgba(0,0,0,.55); backdrop-filter:blur(6px);
+                   color:#fff; font-size:11px; font-weight:600;
+                   padding:3px 9px; border-radius:6px; }
+.tile-mic        { position:absolute; top:8px; right:8px; width:22px; height:22px;
+                   border-radius:50%; background:rgba(0,0,0,.5);
+                   display:flex; align-items:center; justify-content:center; }
+.tile-mic.muted  { background:rgba(220,38,38,.7); }
+.tile-mic svg    { width:11px; height:11px; stroke:#fff; stroke-width:2.5; fill:none; }
+
+@keyframes tileIn  { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+@keyframes tileOut { from{opacity:1;transform:scale(1)}   to{opacity:0;transform:scale(.85)} }
+.grid-tile.in    { animation:tileIn  .35s ease forwards; }
+.grid-tile.out   { animation:tileOut .3s  ease forwards; }
+
+/* ── PIP self-view ──────────────────────────────────────── */
+#pip-self        { position:absolute; bottom:80px; right:16px; width:180px; height:135px;
+                   border-radius:10px; border:2px solid rgba(255,255,255,.2);
+                   box-shadow:0 4px 20px rgba(0,0,0,.5); overflow:hidden;
+                   cursor:grab; z-index:10;
+                   background:linear-gradient(135deg,#111827,#1e293b);
+                   transition:border-color .2s, box-shadow .2s;
+                   display:flex; align-items:center; justify-content:center; }
+#pip-self:hover  { border-color:rgba(255,255,255,.5); }
+#pip-self.dragging { cursor:grabbing; box-shadow:0 8px 32px rgba(0,0,0,.7); user-select:none; }
+#pip-self video  { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; }
+#pip-cam-off     { position:absolute; inset:0; display:none; background:linear-gradient(135deg,#1a1a2e,#16213e);
+                   align-items:center; justify-content:center; flex-direction:column;
+                   gap:6px; color:#64748b; font-size:10px; z-index:2; }
+#pip-cam-off .tile-avatar { width:38px; height:38px; font-size:13px;
+                             background:linear-gradient(135deg,#7c3aed,#4f46e5); }
+
+/* ── Controls bar ───────────────────────────────────────── */
+#call-controls   { position:absolute; bottom:0; left:0; right:0; height:72px; z-index:5;
+                   background:linear-gradient(to top,rgba(0,0,0,.75),transparent);
+                   display:flex; align-items:center; justify-content:center; gap:12px; }
+.ctrl-divider    { width:1px; height:28px; background:rgba(255,255,255,.12); margin:0 2px; }
+
+.call-btn        { position:relative; }
+.cb-active       { background:rgba(37,99,235,.35) !important; box-shadow:0 0 0 2px #3b82f6; }
+.cb-muted        { background:rgba(220,38,38,.35) !important; box-shadow:0 0 0 2px rgba(220,38,38,.5); }
+.cb-screen-on    { background:rgba(34,197,94,.3)  !important; box-shadow:0 0 0 2px #22c55e; }
+.cb-muted img    { filter:invert(35%) sepia(90%) saturate(600%) hue-rotate(330deg) brightness(1.1)!important; }
+.cb-screen-on img{ filter:invert(70%) sepia(60%) saturate(400%) hue-rotate(80deg) brightness(1.1)!important; }
+
+.call-btn::after { content:attr(data-tip); position:absolute; bottom:115%; left:50%;
+                   transform:translateX(-50%); white-space:nowrap;
+                   background:rgba(0,0,0,.8); color:#fff; font-size:10px;
+                   padding:3px 8px; border-radius:4px; opacity:0; pointer-events:none;
+                   transition:opacity .15s; }
+.call-btn:hover::after { opacity:1; }
+
+/* ── Top-left info ──────────────────────────────────────── */
+#call-info       { position:absolute; top:12px; left:12px; z-index:5;
+                   display:flex; align-items:center; gap:7px; pointer-events:none; }
+.info-pill       { background:rgba(0,0,0,.55); backdrop-filter:blur(6px);
+                   border-radius:20px; padding:5px 12px;
+                   color:#fff; font-size:12px; font-weight:600; letter-spacing:.04em; }
+#participant-badge { color:#94a3b8; font-weight:500; }
+#rec-badge       { display:flex; align-items:center; gap:5px; font-size:11px;
+                   font-weight:700; letter-spacing:.05em; }
+#rec-badge::before { content:''; width:6px; height:6px; border-radius:50%;
+                     background:#ef4444; animation:blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* ── Top-right overlay btns ─────────────────────────────── */
+#top-right       { position:absolute; top:12px; right:12px; z-index:5; display:flex; gap:8px; }
+.ov-btn          { background:rgba(0,0,0,.55); backdrop-filter:blur(6px);
+                   border:1px solid rgba(255,255,255,.12); color:#fff;
+                   font-size:11px; font-weight:600; padding:5px 12px;
+                   border-radius:20px; cursor:pointer; transition:all .15s;
+                   display:flex; align-items:center; gap:5px; }
+.ov-btn:hover    { background:rgba(255,255,255,.15); }
+.ov-btn.on       { background:rgba(37,99,235,.5); border-color:#3b82f6; }
+
+/* ── Labels ─────────────────────────────────────────────── */
+#lis-badge       { position:absolute; top:16px; left:16px; z-index:4; pointer-events:none; }
+#spk-label       { position:absolute; bottom:80px; left:16px; z-index:4;
+                   background:rgba(0,0,0,.6); backdrop-filter:blur(6px); color:#fff;
+                   font-size:12px; font-weight:600; padding:5px 12px; border-radius:8px;
+                   display:flex; align-items:center; gap:6px; }
+#spk-label::before { content:''; width:6px; height:6px; border-radius:50%;
+                     background:#22c55e; animation:blink .9s infinite; }
+
+/* ── Screen share banner ────────────────────────────────── */
+#screen-banner   { position:absolute; top:50px; left:50%; transform:translateX(-50%);
+                   background:rgba(34,197,94,.15); border:1px solid rgba(34,197,94,.4);
+                   color:#22c55e; font-size:12px; font-weight:600;
+                   padding:6px 16px; border-radius:20px; z-index:6;
+                   display:none; align-items:center; gap:6px; backdrop-filter:blur(8px); }
+#screen-banner.show { display:flex; }
+
+/* ── Keyboard hint ──────────────────────────────────────── */
+#kbd-hint        { position:absolute; bottom:82px; left:50%; transform:translateX(-50%);
+                   background:rgba(0,0,0,.65); backdrop-filter:blur(6px); color:#64748b;
+                   font-size:10px; padding:4px 14px; border-radius:20px; z-index:5;
+                   opacity:0; transition:opacity .4s; white-space:nowrap; pointer-events:none; }
+#kbd-hint.show   { opacity:1; }
+kbd              { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
+                   border-radius:3px; padding:0 4px; font-size:9px; font-family:monospace; }
+
+/* ── Sidebar ────────────────────────────────────────────── */
+#call-sidebar    { width:340px; background:var(--surface); border-left:1px solid var(--border);
+                   display:flex; flex-direction:column;
+                   transition:width .25s ease, opacity .2s; overflow:hidden; flex-shrink:0; }
+#call-sidebar.closed { width:0; opacity:0; }
+.sidebar-head    { display:flex; align-items:center; justify-content:space-between;
+                   padding:12px 14px 0; }
+.close-btn       { width:26px; height:26px; border-radius:6px; border:none; cursor:pointer;
+                   background:transparent; color:var(--text3); display:flex;
+                   align-items:center; justify-content:center; font-size:14px;
+                   transition:background .15s; }
+.close-btn:hover { background:var(--bg3); color:var(--text); }
+
+/* ── Typing indicator ───────────────────────────────────── */
+.typing-indicator { display:flex; gap:4px; padding:8px 0 4px 36px; align-items:center; }
+.typing-dot      { width:6px; height:6px; border-radius:50%; background:var(--text3);
+                   animation:bounce .8s infinite; }
+.typing-dot:nth-child(2) { animation-delay:.15s; }
+.typing-dot:nth-child(3) { animation-delay:.3s;  }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+
+/* ── Main cam-off overlay ───────────────────────────────── */
+#main-cam-off    { position:absolute; inset:0; display:none; z-index:3;
+                   background:linear-gradient(135deg,#1a1a2e,#16213e);
+                   align-items:center; justify-content:center;
+                   flex-direction:column; gap:10px; color:#64748b; font-size:12px; }
+#main-cam-off .tile-avatar { width:64px; height:64px; font-size:22px;
+                              background:linear-gradient(135deg,#059669,#0d9488); }
+</style>
+</head>
+<body>
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg"></span></div>
+
+<div class="page active" id="page-call">
+  <nav class="topnav">
+    <a class="logo" onclick="window.location.href='dashboard.html'">
+      <div class="logo-icon"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E"/></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" onclick="window.location.href='dashboard.html'">Contatti</button>
+      <button class="nav-link" onclick="window.location.href='recents.html'">Chiamate Recenti</button>
+      <button class="nav-link" onclick="window.location.href='about.html'">Chi siamo</button>
+    </div>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot">Connesso</div>
+      <div class="avatar">MR</div>
+    </div>
+  </nav>
+
+  <div id="call-body">
+
+    <!-- VIDEO AREA -->
+    <div id="video-area">
+
+      <!-- Speaker view (default) -->
+      <div id="speaker-view">
+        <div id="main-video-box">
+          <video id="main-video" autoplay playsinline></video>
+          <div id="main-cam-off">
+            <div class="tile-avatar">LC</div>
+            <span>Lucia Conti — camera disattivata</span>
+          </div>
+          <div class="webcam-placeholder" id="main-ph" style="color:#64748b;">
+            <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='1.5'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3C/svg%3E"/>
+            <div id="main-ph-name">Lucia Conti</div>
+          </div>
+          <div class="webcam-label" id="main-label" style="font-size:13px;padding:6px 14px;">Lucia Conti</div>
+        </div>
+      </div>
+
+      <!-- Grid view (hidden until toggled) -->
+      <div id="grid-view"></div>
+
+      <!-- Top-left info: timer + count + REC -->
+      <div id="call-info">
+        <div class="info-pill" id="call-timer">00:00</div>
+        <div class="info-pill" id="participant-badge">2 partecipanti</div>
+        <div class="info-pill" id="rec-badge">REC</div>
+      </div>
+
+      <!-- Top-right: view toggle + sidebar toggle -->
+      <div id="top-right">
+        <button class="ov-btn" id="btn-view">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          <span id="view-label">Griglia</span>
+        </button>
+        <button class="ov-btn on" id="btn-sidebar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/>
+          </svg>
+          Chat
+        </button>
+      </div>
+
+      <!-- LIS badge (persistent overlay) -->
+      <div id="lis-badge">
+        <div class="badge badge-green badge-dot" style="background:rgba(0,0,0,.5);color:#4ade80;backdrop-filter:blur(4px);">LIS Rilevato</div>
+      </div>
+
+      <!-- Active speaker label -->
+      <div id="spk-label">Lucia Conti</div>
+
+      <!-- Screen-share banner -->
+      <div id="screen-banner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        Stai condividendo lo schermo &#8212; premi <kbd>S</kbd> per terminare
+      </div>
+
+      <!-- Keyboard hint -->
+      <div id="kbd-hint">
+        <kbd>M</kbd> mic &nbsp;&middot;&nbsp; <kbd>V</kbd> cam &nbsp;&middot;&nbsp;
+        <kbd>S</kbd> schermo &nbsp;&middot;&nbsp; <kbd>G</kbd> griglia &nbsp;&middot;&nbsp;
+        <kbd>C</kbd> chat &nbsp;&middot;&nbsp; <kbd>Q</kbd> esci
+      </div>
+
+      <!-- Self-view PIP (draggable) -->
+      <div id="pip-self">
+        <video id="local-video" autoplay muted playsinline></video>
+        <div id="pip-cam-off">
+          <div class="tile-avatar">MR</div>
+          <span>Camera off</span>
+        </div>
+        <div class="webcam-placeholder" id="pip-ph" style="color:#94a3b8;font-size:11px;position:relative;z-index:1;">
+          <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3C/svg%3E"/>
+          <div>La tua camera</div>
+        </div>
+        <div class="webcam-label" style="font-size:11px;z-index:3;">Mario Rossi (Tu)</div>
+      </div>
+
+      <!-- Controls bar -->
+      <div id="call-controls">
+        <button id="btn-mic"    class="call-btn call-btn-gray" data-tip="Microfono (M)">
+          <img id="icon-mic" alt="mic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3C/svg%3E"/>
+        </button>
+        <button id="btn-cam"    class="call-btn call-btn-gray" data-tip="Fotocamera (V)">
+          <img id="icon-cam" alt="cam" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3C/svg%3E"/>
+        </button>
+        <button id="btn-screen" class="call-btn call-btn-gray" data-tip="Schermo (S)">
+          <img id="icon-screen" alt="screen" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='2' y='3' width='20' height='14' rx='2'/%3E%3Cline x1='8' y1='21' x2='16' y2='21'/%3E%3Cline x1='12' y1='17' x2='12' y2='21'/%3E%3C/svg%3E"/>
+        </button>
+        <button id="btn-hand"   class="call-btn call-btn-gray cb-active" data-tip="LIS Tracking (H)">
+          <img id="icon-hand" alt="hand" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E"/>
+        </button>
+        <div class="ctrl-divider"></div>
+        <button id="btn-end"    class="call-btn call-btn-red" data-tip="Termina (Q)">
+          <img alt="end" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5'%3E%3Cpath d='M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.96.37 2 .59 3.07.7A2 2 0 0 1 22 18v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.9 13.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 3h3a2 2 0 0 1 2 1.72c.1 1.07.33 2.11.7 3.07a2 2 0 0 1-.45 2.11l-1.27 1.27'/%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3C/svg%3E"/>
+        </button>
+      </div>
+    </div><!-- /video-area -->
+
+    <!-- SIDEBAR -->
+    <div id="call-sidebar">
+      <div class="sidebar-head">
+        <div class="pill-tabs" style="margin:0;">
+          <button class="pill-tab active" id="tab-sub"  onclick="switchCallTab('subtitles')">Sottotitoli</button>
+          <button class="pill-tab"        id="tab-chat" onclick="switchCallTab('chat')">Chat</button>
+        </div>
+        <button class="close-btn" onclick="Sidebar.close()">&#10005;</button>
+      </div>
+
+      <!-- Subtitle panel -->
+      <div id="panel-subtitles" style="flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Trascrizione LIS in Diretta</div>
+        <div id="subtitles-list">
+          <div class="subtitle-entry">
+            <div class="subtitle-speaker">Lucia Conti &mdash; 14:02</div>
+            <div class="subtitle-text">Ciao, come stai?</div>
+          </div>
+          <div class="subtitle-entry" style="border-left-color:#7c3aed;">
+            <div class="subtitle-speaker" style="color:#7c3aed;">Mario Rossi (Tu) &mdash; 14:02</div>
+            <div class="subtitle-text">Sto bene, grazie!</div>
+          </div>
+          <div class="subtitle-entry">
+            <div class="subtitle-speaker">Lucia Conti &mdash; 14:03</div>
+            <div class="subtitle-text">Oggi voglio parlare del progetto.</div>
+          </div>
+          <div class="subtitle-entry" style="border-left-color:#7c3aed;">
+            <div class="subtitle-speaker" style="color:#7c3aed;">Mario Rossi (Tu) &mdash; 14:03</div>
+            <div class="subtitle-text">Certo, sono pronto ad ascoltare.</div>
+          </div>
+        </div>
+        <div class="subtitle-entry live" id="live-entry" style="margin-top:4px;">
+          <div class="subtitle-speaker" id="live-speaker">Lucia Conti &mdash; 14:04</div>
+          <div class="subtitle-text"    id="live-subtitle">Riconoscendo gesto&hellip;</div>
+        </div>
+        <div style="margin-top:auto;padding-top:16px;">
+          <button class="btn btn-outline text-xs w-full" onclick="downloadTranscript()" style="justify-content:center;">
+            Scarica Trascrizione
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat panel -->
+      <div id="panel-chat" style="flex:1;padding:16px;overflow-y:auto;display:none;flex-direction:column;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Chat Testo</div>
+        <div id="chat-messages">
+          <div class="chat-msg">
+            <div class="avatar" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#059669,#0d9488);flex-shrink:0;">LC</div>
+            <div class="chat-bubble">Riesci a sentirmi bene?</div>
+          </div>
+          <div class="chat-msg" style="flex-direction:row-reverse;">
+            <div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">MR</div>
+            <div class="chat-bubble own">S&igrave;, tutto ok!</div>
+          </div>
+          <div class="chat-msg">
+            <div class="avatar" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,#059669,#0d9488);flex-shrink:0;">LC</div>
+            <div class="chat-bubble">Perfetto, continuiamo in LIS allora.</div>
+          </div>
+        </div>
+        <div id="typing-area" style="display:none;" class="typing-indicator">
+          <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+        </div>
+        <div style="margin-top:auto;padding-top:12px;display:flex;gap:8px;">
+          <input id="chat-input" class="input" placeholder="Scrivi un messaggio… (Invio)" style="flex:1;font-size:13px;"/>
+          <button id="chat-send" class="btn btn-primary" style="padding:10px 14px;">
+            <img alt="invia" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cline x1='22' y1='2' x2='11' y2='13'/%3E%3Cpolygon points='22 2 15 22 11 13 2 9 22 2'/%3E%3C/svg%3E" style="width:14px;height:14px;"/>
+          </button>
+        </div>
+      </div>
+    </div><!-- /sidebar -->
+
+  </div><!-- /call-body -->
+</div><!-- /page-call -->
+
+<script src="../JS/tils.js"></script>
+<script src="../JS/call.js"></script>
+</body>
+</html>

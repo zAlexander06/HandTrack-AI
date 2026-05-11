@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandTrackLIS — Permessi</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="../CSS/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Salvato</span></div>
+<div class="page active" id="page-permissions">
+<nav class="topnav">
+<a class="logo" onclick="window.location.href='../index.html'">
+<div class="logo-icon"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E"/></div>
+      HandTrackLIS
+    </a>
+<div class="nav-right" style="margin-left:auto;"><span class="text-sm text-muted">Passaggio 1 di 2</span></div>
+</nav>
+<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px;background:radial-gradient(ellipse 60% 60% at 50% 0%,rgba(124,58,237,0.06) 0%,transparent 70%);">
+<div style="width:100%;max-width:560px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.5'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:52px;height:52px;margin:0 auto 12px;display:block;"/>
+<h2 style="font-family:'Syne',sans-serif;font-size:26px;font-weight:700;margin-bottom:6px;">Permessi Necessari</h2>
+<p class="text-muted text-sm">HandTrackLIS ha bisogno dell'accesso a fotocamera, microfono e tracciamento della mano per funzionare.</p>
+</div>
+<div class="card">
+<div class="flex flex-col gap-3 mb-4">
+<div class="perm-card" id="perm-camera">
+<div class="perm-icon"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3Cpath d='M15 2l-3 4-3-4'/%3E%3C/svg%3E"/></div>
+<div class="perm-info"><div class="perm-title">Accesso Fotocamera</div><div class="perm-desc">Necessario per videochiamate e rilevamento gesti della mano.</div></div>
+<div class="perm-check" id="check-camera"></div>
+<button class="btn btn-outline text-sm" id="btn-camera" onclick="grantPerm('camera')">Consenti Fotocamera</button>
+</div>
+<div class="perm-card" id="perm-mic">
+<div class="perm-icon"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3C/svg%3E"/></div>
+<div class="perm-info"><div class="perm-title">Accesso Microfono</div><div class="perm-desc">Abilita l'audio durante le videochiamate.</div></div>
+<div class="perm-check" id="check-mic"></div>
+<button class="btn btn-outline text-sm" id="btn-mic" onclick="grantPerm('mic')">Consenti Microfono</button>
+</div>
+<div class="perm-card" id="perm-hand">
+<div class="perm-icon"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E"/></div>
+<div class="perm-info"><div class="perm-title">Tracciamento Mano</div><div class="perm-desc">Abilita il riconoscimento gesti LIS e la generazione di sottotitoli.</div></div>
+<div class="perm-check" id="check-hand"></div>
+<button class="btn btn-outline text-sm" id="btn-hand" onclick="grantPerm('hand')">Abilita Tracciamento</button>
+</div>
+</div>
+<div class="info-box mb-4">
+<img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E"/>
+          Tutta l'elaborazione video avviene localmente nel browser. Nessun dato gestuale viene inviato ai nostri server.
+        </div>
+<button class="btn btn-primary w-full" disabled="" id="continue-btn" onclick="window.location.href='dashboard.html'" style="justify-content:center;padding:12px;">Continua alla Dashboard</button>
+<p id="perm-warning" style="text-align:center;font-size:12px;color:var(--red);margin-top:8px;">Concedi tutti e tre i permessi per continuare.</p>
+</div>
+</div>
+</div>
+</div>
+<style>
+  .btn-danger{background:#ef4444;color:#fff;border-color:#ef4444;}
+  .btn-danger:hover{background:#dc2626;border-color:#dc2626;}
+  .perm-check.err{color:#ef4444;font-weight:700;}
+  .perm-card.denied{border-color:#ef444440;background:rgba(239,68,68,.04);}
+  .perm-card.loading{opacity:.7;pointer-events:none;}
+</style>
+<script src="../JS/utils.js"></script>
+<script>
+  // Fallback in case utils.js doesn't expose showToast globally
+  if (typeof showToast === 'undefined') {
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      const m = document.getElementById('toast-msg');
+      if (!t || !m) return;
+      m.textContent = msg;
+      t.style.borderColor = isError ? '#ef4444' : '';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+  }
+</script>
+<script src="../JS/permissions.js"></script>
+</body>
+</html>

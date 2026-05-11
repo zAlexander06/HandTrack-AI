@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandTrackLIS — Chiamate Recenti</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="../CSS/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Salvato</span></div>
+<div class="page active" id="page-recents">
+<nav class="topnav">
+<a class="logo" onclick="window.location.href='dashboard.html'">
+<div class="logo-icon"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E"/></div>
+      HandTrackLIS
+    </a>
+<div class="nav-links">
+<button class="nav-link" onclick="window.location.href='dashboard.html'">Contatti</button>
+<button class="nav-link active-nav">Chiamate Recenti</button>
+<button class="nav-link" onclick="window.location.href='about.html'">Chi siamo</button>
+</div>
+<div class="nav-right"><div class="badge badge-green badge-dot">Connesso</div><div class="avatar">MR</div></div>
+</nav>
+<div class="sidebar-layout">
+<aside class="sidebar">
+<div class="sidebar-section-label">Navigazione</div>
+<button class="sidebar-link" onclick="window.location.href='dashboard.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E"/>Contatti
+      </button>
+<button class="sidebar-link active" onclick="window.location.href='recents.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E"/>Chiamate Recenti
+      </button>
+<button class="sidebar-link" onclick="window.location.href='add-contact.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E"/>Aggiungi Contatto
+      </button>
+<div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+<button class="sidebar-link" onclick="window.location.href='settings.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E"/>Impostazioni
+      </button>
+<button class="sidebar-link" onclick="window.location.href='about.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E"/>Chi Siamo
+      </button>
+<div class="sidebar-spacer"></div>
+<button class="sidebar-link" onclick="window.location.href='../index.html'" style="color:var(--red);">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E"/>Esci
+      </button>
+</aside>
+<div class="main-content">
+<h1 class="section-title">Chiamate Recenti</h1>
+<p class="section-sub" style="margin-bottom:24px;">Cronologia chiamate con trascrizioni sottotitoli</p>
+<div class="card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+<h3 style="font-weight:600;">Cronologia</h3>
+<button class="btn btn-outline text-sm">Esporta Trascrizioni</button>
+</div>
+<div class="flex flex-col gap-2">
+<div class="call-item">
+<div class="call-icon out"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.5'%3E%3Cline x1='7' y1='17' x2='17' y2='7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E"/></div>
+<div class="avatar" style="width:36px;height:36px;font-size:13px;flex-shrink:0;background:linear-gradient(135deg,#059669,#0d9488);">LC</div>
+<div style="flex:1;"><div class="font-semibold text-sm">Lucia Conti</div><div class="text-xs text-muted">In uscita · 24 min</div></div>
+<div class="text-xs text-muted">Oggi, 10:32</div>
+<button class="btn btn-outline text-xs" onclick="window.location.href='call.html'">Trascrizione</button>
+<button class="btn btn-primary text-xs" onclick="window.location.href='waiting.html'">Richiama</button>
+</div>
+<div class="call-item">
+<div class="call-icon in"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5'%3E%3Cline x1='17' y1='7' x2='7' y2='17'/%3E%3Cpath d='M17 17H7V7'/%3E%3C/svg%3E"/></div>
+<div class="avatar" style="width:36px;height:36px;font-size:13px;flex-shrink:0;background:linear-gradient(135deg,#059669,#0d9488);">AF</div>
+<div style="flex:1;"><div class="font-semibold text-sm">Alessandro Ferrari</div><div class="text-xs text-muted">In entrata · 11 min</div></div>
+<div class="text-xs text-muted">Ieri, 16:14</div>
+<button class="btn btn-outline text-xs" onclick="window.location.href='call.html'">Trascrizione</button>
+<button class="btn btn-primary text-xs" onclick="window.location.href='waiting.html'">Richiama</button>
+</div>
+<div class="call-item">
+<div class="call-icon missed"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.5'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E"/></div>
+<div class="avatar" style="width:36px;height:36px;font-size:13px;flex-shrink:0;background:linear-gradient(135deg,#dc2626,#9f1239);">GT</div>
+<div style="flex:1;"><div class="font-semibold text-sm">Giulia Toscano</div><div class="text-xs" style="color:var(--red);">Chiamata persa · Nessuna risposta</div></div>
+<div class="text-xs text-muted">Ieri, 09:05</div>
+<button class="btn btn-primary text-xs" onclick="window.location.href='waiting.html'">Richiama</button>
+</div>
+<div class="call-item">
+<div class="call-icon out"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.5'%3E%3Cline x1='7' y1='17' x2='17' y2='7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E"/></div>
+<div class="avatar" style="width:36px;height:36px;font-size:13px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#4f46e5);">MB</div>
+<div style="flex:1;"><div class="font-semibold text-sm">Marco Bianchi</div><div class="text-xs text-muted">In uscita · 38 min</div></div>
+<div class="text-xs text-muted">2 giorni fa</div>
+<button class="btn btn-outline text-xs" onclick="window.location.href='call.html'">Trascrizione</button>
+<button class="btn btn-primary text-xs" onclick="window.location.href='waiting.html'">Richiama</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="../JS/utils.js"></script>
+</body>
+</html>

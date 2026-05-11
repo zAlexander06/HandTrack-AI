@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandTrackLIS — Aggiungi Contatto</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="../CSS/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Salvato</span></div>
+<div class="page active" id="page-add-contact">
+<nav class="topnav">
+<a class="logo" onclick="window.location.href='dashboard.html'">
+<div class="logo-icon"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E"/></div>
+      HandTrackLIS
+    </a>
+<div class="nav-links">
+<button class="nav-link" onclick="window.location.href='dashboard.html'">Contatti</button>
+<button class="nav-link" onclick="window.location.href='recents.html'">Chiamate Recenti</button>
+<button class="nav-link" onclick="window.location.href='about.html'">Chi siamo</button>
+</div>
+<div class="nav-right">
+<div class="badge badge-green badge-dot">Connesso</div>
+<div class="avatar">MR</div>
+</div>
+</nav>
+<div class="sidebar-layout">
+<aside class="sidebar">
+<div class="sidebar-section-label">Navigazione</div>
+<button class="sidebar-link" onclick="window.location.href='dashboard.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E"/>Contatti
+      </button>
+<button class="sidebar-link" onclick="window.location.href='recents.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E"/>Chiamate Recenti
+      </button>
+<button class="sidebar-link active" onclick="window.location.href='add-contact.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E"/>Aggiungi Contatto
+      </button>
+<div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+<button class="sidebar-link" onclick="window.location.href='settings.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E"/>Impostazioni
+      </button>
+<button class="sidebar-link" onclick="window.location.href='about.html'">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E"/>Chi Siamo
+      </button>
+<div class="sidebar-spacer"></div>
+<button class="sidebar-link" onclick="window.location.href='../index.html'" style="color:var(--red);">
+<img alt="" class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E"/>Esci
+      </button>
+</aside>
+<div class="main-content">
+<h1 class="section-title">Aggiungi Contatto</h1>
+<p class="section-sub">Cerca utenti per email o nome utente</p>
+<div class="grid-2" style="gap:32px;align-items:start;">
+<div>
+<div class="card mb-4">
+<h3 style="font-weight:600;margin-bottom:16px;">Cerca Utenti</h3>
+<div class="input-group mb-3">
+<label class="input-label">Email o Nome Utente</label>
+<div class="search-wrap">
+<img alt="" class="s-icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E"/>
+<input class="input" id="contact-search" oninput="filterSuggestedContacts()" placeholder="Cerca per email o @nomeutente…"/>
+</div>
+</div>
+<button class="btn btn-primary w-full" style="justify-content:center;">Cerca</button>
+</div>
+<div class="card">
+<h3 style="font-weight:600;margin-bottom:4px;">Risultati</h3>
+<p class="text-xs text-muted" style="margin-bottom:16px;">Utenti HandTrackLIS trovati</p>
+<div id="search-results">
+<div style="text-align:center;padding:24px;color:var(--text3);">
+<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E" style="width:36px;height:36px;opacity:0.25;display:block;margin:0 auto 8px;"/>
+<div class="text-sm">Digita per cercare utenti</div>
+</div>
+</div>
+</div>
+</div>
+<div class="card">
+<h3 style="font-weight:600;margin-bottom:4px;">Contatti Suggeriti</h3>
+<p class="text-xs text-muted" style="margin-bottom:16px;">Persone che potresti conoscere</p>
+<div class="flex flex-col gap-2">
+<div class="contact-item"><div class="avatar" style="background:linear-gradient(135deg,#059669,#0d9488);">AF</div><div class="contact-info"><div class="contact-name">Alessandro Ferrari</div><div class="contact-status">@a.ferrari · 3 contatti in comune</div></div><span class="tag tag-blue">Utente LIS</span><button class="btn btn-primary text-xs" onclick="addedContact(this)">+ Aggiungi</button></div>
+<div class="contact-item"><div class="avatar" style="background:linear-gradient(135deg,#dc2626,#9f1239);">GT</div><div class="contact-info"><div class="contact-name">Giulia Toscano</div><div class="contact-status">@giulia.t · 1 contatto in comune</div></div><span class="tag tag-purple">Interprete</span><button class="btn btn-primary text-xs" onclick="addedContact(this)">+ Aggiungi</button></div>
+<div class="contact-item"><div class="avatar" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">VN</div><div class="contact-info"><div class="contact-name">Valentina Neri</div><div class="contact-status">@valentina.n · 2 contatti in comune</div></div><button class="btn btn-primary text-xs" onclick="addedContact(this)">+ Aggiungi</button></div>
+<div class="contact-item"><div class="avatar" style="background:linear-gradient(135deg,#b45309,#92400e);">PS</div><div class="contact-info"><div class="contact-name">Pietro Sala</div><div class="contact-status">@pietro.s · 4 contatti in comune</div></div><span class="tag tag-blue">Utente LIS</span><button class="btn btn-primary text-xs" onclick="addedContact(this)">+ Aggiungi</button></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="../JS/utils.js"></script>
+<script src="../JS/contacts.js"></script>
+</body>
+</html>
