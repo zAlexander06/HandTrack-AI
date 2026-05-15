@@ -32,9 +32,17 @@ def carica_addestra_modello():
         print(f"Caricamento lettera: {lettera}...")
 
         for file_csv in os.listdir(cartella_lettera):
+
+            if not file_csv.endswith(".csv"): continue
+
             try:
                 path_completo = os.path.join(cartella_lettera, file_csv)
                 file = pd.read_csv(path_completo, header=None)
+
+                try:
+                    float(file.iloc[0, 3])
+                except (ValueError, TypeError):
+                    file = file.iloc[1:].reset_index(drop=True)
 
                 landmarks = file.iloc[:, 3:6].values.astype(np.float32)
 
@@ -52,9 +60,7 @@ def carica_addestra_modello():
                 if max_val > 0:
                     landmarks = landmarks / max_val
 
-                flat_landmarks = landmarks.flatten()
-
-                x_data.append(flat_landmarks)
+                x_data.append(landmarks.flatten())
                 y_labels.append(lettera)
 
             except Exception as e:

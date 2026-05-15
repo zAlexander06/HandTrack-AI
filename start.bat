@@ -12,7 +12,7 @@ python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo Python non trovato. Installazione in corso...
 
-    powershell -Command "Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe -OutFile python-installer.exe"
+    powershell -Command "Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe -OutFile python-installer.exe"
 
     echo Installazione silenziosa...
     start /wait python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
@@ -37,8 +37,14 @@ echo.
 
 :: Ambiente virtuale
 if not exist ".venv" (
-    echo Creazione ambiente virtuale...
-    python -m venv .venv
+    echo Creazione ambiente virtuale con Python 3.11...
+
+    py -3.11 -m venv .venv
+    
+    if %errorlevel% neq 0 (
+        echo Tentativo alternativo...
+        python -m venv .venv
+    )
 ) else (
     echo Ambiente virtuale gia esistente.
 )

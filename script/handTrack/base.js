@@ -195,27 +195,46 @@ function salva_csv() {
 
 // Feature vector
 function landmarks_to_feature_vector(handLandmarks) {
-    const n_punti = 21;
-    const feat = new Float32Array(n_punti * 3);
+    if (!handLandmarks || handLandmarks.length < 21) return null;
 
-    const wx = handLandmarks[0].x;
-    const wy = handLandmarks[0].y;
-    const wz = handLandmarks[0].z;
+    const feat = new Float32Array(63);
 
-    handLandmarks.forEach((pt, i) => {
-        const index = i * 3;
-        feat[index] = pt.x - wx;
-        feat[index + 1] = pt.y - wy;
-        feat[index + 2] = pt.z - wz;
-    });
+    const wx = handLandmarks[0].x ?? 0;
+    const wy = handLandmarks[0].y ?? 0;
+    const wz = handLandmarks[0].z ?? 0;
+
+    let haDatiValidi = false;
+
+    for (let i = 0; i < 21; i++) {
+        const pt = handLandmarks[i];
+        const off = i * 3;
+
+        feat[off] = (pt.x ?? 0) - wx;
+        feat[off + 1] = (pt.y ?? 0) - wy;
+        feat[off + 2] = (pt.z ?? 0) - wz;
+
+        if (feat[off] !== 0 || feat[off + 1] !== 0) haDatiValidi = true;
+    }
+
+    if (!haDatiValidi) {
+        console.warn("[AI] Vettore nullo — tutti zeri");
+        return feat;
+    }
+
+    if (feat[5 * 3] < 0) {
+        for (let i = 0; i < 21; i++) {
+            feat[i * 3] *= -1;
+        }
+    }
 
     let maxVal = 0;
-    feat.forEach(v => {
-        if (Math.abs(v) > maxVal) maxVal = Math.abs(v);
-    });
+    for (let i = 0; i < 63; i++) {
+        const v = Math.abs(feat[i]);
+        if (v > maxVal) maxVal = v;
+    }
 
     if (maxVal > 0) {
-        for (let i = 0; i < feat.length; i++) {
+        for (let i = 0; i < 63; i++) {
             feat[i] /= maxVal;
         }
     }
@@ -261,24 +280,20 @@ function mano_visibile(landmarks, video, canvas) {
 
 // Predizione AI
 async function predici_lettera(landmarks) {
-    if (!ia_model || !landmarks.length)
+    if (!ia_model || !Array.isArray(landmarks) || !landmarks.length)
         return { lettera: null, confidenza: 0, top3: [] };
 
     const feat = landmarks_to_feature_vector(landmarks);
 
-    if (feat.length !== 63) {
+    if (!feat || feat.length !== 63) {
         console.error(`Errore Dimensioni: attesi 63, ottenuti ${feat.length}. Verificare landmarks_to_feature_vector.`);
         return { lettera: null, confidenza: 0, top3: [] };
     }
 
-    const tensor = new ort.Tensor("float32", feat, [1, feat.length]);
-
     try {
-        const feeds = { "keras_tensor": tensor };
-        const output = await ia_model.run(feeds);
-
-        const outputName = ia_model.outputNames[0];
-        const proba = output[outputName].data;
+        const tensor = new ort.Tensor("float32", feat, [1, 63]);
+        const output = await ia_model.run({ [ia_model.inputNames[0]]: tensor });
+        const proba = output[ia_model.outputNames[0]].data;
 
         const top3idx = Array.from(proba)
             .map((prob, i) => ({ prob, i }))
@@ -287,11 +302,7 @@ async function predici_lettera(landmarks) {
 
         const top3 = top3idx.map(({ prob, i }) => [label[i], prob]);
 
-        return {
-            lettera: top3[0][0],
-            confidenza: top3[0][1],
-            top3
-        };
+        return { lettera: top3[0][0], confidenza: top3[0][1], top3 };
     } catch (e) {
         console.error("Errore durante l'esecuzione del modello:", e);
         return { lettera: null, confidenza: 0, top3: [] };
@@ -319,9 +330,11 @@ async function aggiorna_predizione(landmarks) {
     const best_lettera = Object.keys(let_smooth).reduce((a, b) =>
         let_smooth[a] > let_smooth[b] ? a : b
     );
-    const best_confidenza = let_smooth[best_lettera] / pred_buf.length;
 
-    return { lettera: best_lettera, confidenza: best_confidenza, top3: conf_smooth[best_lettera] || [] };
+    const conf_grezzo = let_smooth[best_lettera] ?? 0;
+    const len = pred_buf.length || 1;
+
+    return { lettera: best_lettera ?? null, confidenza: conf_grezzo / len, top3: conf_smooth[best_lettera] || [] };
 }
 
 // Dita alzate
@@ -362,8 +375,14 @@ async function loop_handTracker() {
                 .finally(() => { salvataggio_in_corso = false; });
         }
 
-        aggiorna_predizione(ris?.landmarks ?? [])
-            .then(pred => { ultima_pred = pred; });
+        if (ris?.landmarks?.length > 0) {
+            aggiorna_predizione(ris.landmarks[0])
+                .then(pred => {
+                    if (pred) ultima_pred = pred;
+                });
+        } else {
+            ultima_pred = { lettera: null, confidenza: 0, top3: [] };
+        }
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);

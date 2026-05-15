@@ -81,12 +81,14 @@ export function predizione_panel_canvas(canvas, ctx, lettera, confidenza, top3, 
         return;
     }
 
+    // Lettera
     ctx.font = "bold 80px sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
     ctx.fillText(lettera, px + pw / 2, py + 92);
     ctx.textAlign = "left";
 
+    // Barra confidenza
     const bc_x = px + 20, bc_y = py + 107;
     const bc_w = pw - 40, bc_h = 18;
     ctx.fillStyle = "#323232";
@@ -107,12 +109,13 @@ export function predizione_panel_canvas(canvas, ctx, lettera, confidenza, top3, 
     ctx.fillText(`${(confidenza * 100).toFixed(0)}%`, bc_x + bc_w / 2, bc_y + 13);
     ctx.textAlign = "left";
 
+    const top3_y = py + ph - 75;
     (top3 || []).forEach(([lbl, prob], rank) => {
         ctx.font = rank === 0 ? "13px sans-serif" : "11px sans-serif";
         ctx.fillStyle = rank === 0 ? "#FFFFFF" : "#969696";
         ctx.fillText(
             `${rank + 1}. ${lbl}  ${(prob * 100).toFixed(0)}%`,
-            px + 20, py + 147 + rank * 24
+            px + 20, top3_y + rank * 24
         );
     });
 }
