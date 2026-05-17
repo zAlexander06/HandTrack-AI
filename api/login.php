@@ -1,43 +1,47 @@
 <?php
-require_once __DIR__ . '/_bootstrap.php';
-requireMethod('POST');
+// ================================================================
+// api/login.php — Autenticazione utente
+// POST { email, password_hash }
+// ================================================================
+require_once __DIR__ . '/../config/db.php';
 
-$data  = body();
-$login = trim($data['login'] ?? '');    // accepts email OR username
-$pass  = $data['password'] ?? '';
-
-if ($login === '' || $pass === '') {
-    fail('Email/username e password sono obbligatori.');
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    jsonResponse(['error' => 'Metodo non consentito.'], 405);
 }
 
-$pdo = getDB();
+$body = getJsonBody();
+$email         = trim($body['email']         ?? '');
+$password_hash = trim($body['password_hash'] ?? '');
 
-// Look up by email or username
-$stmt = $pdo->prepare('
-    SELECT Id, Username, Email, Password_hash, Role_user, Status_user
-    FROM user
-    WHERE Email = :login OR Username = :login
-    LIMIT 1
-');
-$stmt->execute([':login' => $login]);
+if (!$email || !$password_hash) {
+    jsonResponse(['error' => 'Email e password sono obbligatorie.'], 400);
+}
+
+$db = getDB();
+
+// Cerca l'utente con email + hash corrispondenti
+$stmt = $db->prepare(
+    'SELECT id, username, email, realName, surname, role_user, status_user
+     FROM users
+     WHERE email = :email AND password_hash = :hash
+     LIMIT 1'
+);
+$stmt->execute([':email' => $email, ':hash' => $password_hash]);
 $user = $stmt->fetch();
 
-if (!$user || !password_verify($pass, $user['Password_hash'])) {
-    fail('Credenziali non valide.');
+if (!$user) {
+    jsonResponse(['error' => 'Email o password errati.'], 401);
 }
 
-// Mark user as online
-$pdo->prepare('UPDATE user SET Status_user = "online" WHERE Id = :id')
-    ->execute([':id' => $user['Id']]);
+// Aggiorna status a online
+$db->prepare('UPDATE users SET status_user = "online" WHERE id = :id')
+   ->execute([':id' => $user['id']]);
 
-// Store safe subset in session (never store password hash)
-$_SESSION['user'] = [
-    'id'       => $user['Id'],
-    'username' => $user['Username'],
-    'email'    => $user['Email'],
-    'role'     => $user['Role_user'],
-];
-
-ok([
-    'user' => $_SESSION['user'],
+jsonResponse([
+    'id'       => (int)$user['id'],
+    'username' => $user['username'],
+    'email'    => $user['email'],
+    'realname' => $user['realName'],
+    'surname'  => $user['surname'],
+    'role'     => $user['role_user'],
 ]);

@@ -1,75 +1,51 @@
 <?php
-require_once __DIR__ . '/_bootstrap.php';
-requireMethod('POST');
+// ================================================================
+// api/register.php — Registrazione nuovo utente
+// POST { realname, surname, username, email, password_hash }
+// ================================================================
+require_once __DIR__ . '/../config/db.php';
 
-$data      = body();
-$firstName = trim($data['firstName'] ?? '');
-$lastName  = trim($data['lastName']  ?? '');
-$email     = trim($data['email']     ?? '');
-$email2    = trim($data['email2']    ?? '');
-$pass      = $data['password']  ?? '';
-$pass2     = $data['password2'] ?? '';
-
-// ── Validation ────────────────────────────────────────────────────────
-if ($firstName === '' || $lastName === '') {
-    fail('Nome e cognome sono obbligatori.');
-}
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    fail('Indirizzo email non valido.');
-}
-if ($email !== $email2) {
-    fail('Le email non coincidono.');
-}
-if (strlen($pass) < 8) {
-    fail('La password deve contenere almeno 8 caratteri.');
-}
-if ($pass !== $pass2) {
-    fail('Le password non coincidono.');
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    jsonResponse(['error' => 'Metodo non consentito.'], 405);
 }
 
-// Build a username from first + last name (lowercase, no spaces)
-$baseUsername = strtolower($firstName . '.' . $lastName);
-// Strip anything that isn't a-z, 0-9, or a dot
-$baseUsername = preg_replace('/[^a-z0-9.]/', '', $baseUsername);
+$body          = getJsonBody();
+$realname      = trim($body['realname']      ?? '');
+$surname       = trim($body['surname']       ?? '');
+$username      = trim($body['username']      ?? '');
+$email         = trim($body['email']         ?? '');
+$password_hash = trim($body['password_hash'] ?? '');
 
-$pdo = getDB();
-
-// Check email uniqueness
-$stmt = $pdo->prepare('SELECT Id FROM user WHERE Email = :email LIMIT 1');
-$stmt->execute([':email' => $email]);
-if ($stmt->fetch()) {
-    fail('Questa email è già registrata.');
+if (!$realname || !$surname || !$username || !$email || !$password_hash) {
+    jsonResponse(['error' => 'Tutti i campi sono obbligatori.'], 400);
 }
 
-// Make username unique by appending a counter if needed
-$username = $baseUsername;
-$counter  = 1;
-while (true) {
-    $stmt = $pdo->prepare('SELECT Id FROM user WHERE Username = :u LIMIT 1');
-    $stmt->execute([':u' => $username]);
-    if (!$stmt->fetch()) break;
-    $username = $baseUsername . $counter++;
+$db = getDB();
+
+try {
+    $stmt = $db->prepare(
+        'INSERT INTO users (realName, surname, username, email, password_hash)
+         VALUES (:realname, :surname, :username, :email, :hash)'
+    );
+    $stmt->execute([
+        ':realname' => $realname,
+        ':surname'  => $surname,
+        ':username' => $username,
+        ':email'    => $email,
+        ':hash'     => $password_hash,
+    ]);
+
+    $newId = (int)$db->lastInsertId();
+    jsonResponse(['id' => $newId, 'username' => $username, 'email' => $email]);
+
+} catch (PDOException $e) {
+    // Violazione UNIQUE (codice MySQL 23000 / 1062)
+    if ($e->getCode() === '23000') {
+        $msg = $e->getMessage();
+        if (stripos($msg, 'username') !== false)  jsonResponse(['error' => 'Username già in uso.'], 409);
+        if (stripos($msg, 'email') !== false)      jsonResponse(['error' => 'Email già registrata.'], 409);
+        if (stripos($msg, 'realName') !== false)   jsonResponse(['error' => 'Nome già in uso.'], 409);
+        jsonResponse(['error' => 'Username o email già in uso.'], 409);
+    }
+    jsonResponse(['error' => 'Errore durante la registrazione: ' . $e->getMessage()], 500);
 }
-
-$hash = password_hash($pass, PASSWORD_BCRYPT);
-
-$stmt = $pdo->prepare('
-    INSERT INTO user (Username, Email, Password_hash)
-    VALUES (:username, :email, :hash)
-');
-$stmt->execute([
-    ':username' => $username,
-    ':email'    => $email,
-    ':hash'     => $hash,
-]);
-$newId = (int) $pdo->lastInsertId();
-
-// Auto-login after registration
-$_SESSION['user'] = [
-    'id'       => $newId,
-    'username' => $username,
-    'email'    => $email,
-    'role'     => 'user',
-];
-
-ok(['user' => $_SESSION['user']]);
