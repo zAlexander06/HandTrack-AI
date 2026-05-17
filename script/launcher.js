@@ -8,17 +8,21 @@ const PORT = 5500;
 
 const rootPath = path.join(__dirname, '..');
 const rootProject = path.basename(rootPath);
-const cppServerPath = path.join(__dirname, 'api', 'server.exe');
+
+const isWin = process.platform === 'win32';
+const nomeProgramma = isWin ? 'server_win.exe' : 'server_linux';
+const cppServerPath = path.join(__dirname, 'api', nomeProgramma);
 
 let cppProcess = null;
 
 function startCppBackend() {
     if (!fs.existsSync(cppServerPath)) {
-        console.warn("server.exe non trovato — solo download CSV");
+        console.warn(`${cppServerPath} non trovato — solo download CSV`);
         return;
     }
 
     console.log(`Avvio da: ${cppServerPath}\n`);
+    console.log(`Sistema Rilevato: ${isWin ? 'Windows' : 'Linux/Codespaces'}\n`)
 
     cppProcess = spawn(cppServerPath, [
         "--root", rootPath,
