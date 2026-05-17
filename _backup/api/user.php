@@ -39,27 +39,12 @@ if ($method === 'POST') {
     // ── logout / update_status ───────────────────────────────────
     if ($action === 'logout' || $action === 'update_status') {
         $id     = (int)($body['id'] ?? 0);
-
         $status = $action === 'logout' ? 'offline' : ($body['status'] ?? 'offline');
         if (!$id) jsonResponse(['error' => 'ID mancante.'], 400);
 
         $db->prepare('UPDATE users SET status_user = :s WHERE id = :id')
-            ->execute([':s' => $status, ':id' => $id]);
-
-
-        if ($action === 'logout') {
-            $_SESSION = array();
-
-            // Quando avremo i cookie
-            // if(ini_get("session.use_cookies")) {
-            //     $cookie = session_get_cookie_params();
-            //     setcookie(session_name(), '', time() - 42000, $cookie["path"], $cookie['domain'], $cookie['secure'], $cookie['httponly']);
-            // }
-
-            session_destroy();
-        }
+           ->execute([':s' => $status, ':id' => $id]);
         jsonResponse(['ok' => true]);
-        exit();
     }
 
     // ── update_profile ───────────────────────────────────────────
@@ -100,7 +85,7 @@ if ($method === 'POST') {
         if (!$stmt->fetch()) jsonResponse(['error' => 'La password attuale non è corretta.'], 401);
 
         $db->prepare('UPDATE users SET password_hash = :h WHERE id = :id')
-            ->execute([':h' => $newHash, ':id' => $id]);
+           ->execute([':h' => $newHash, ':id' => $id]);
         jsonResponse(['ok' => true]);
     }
 
@@ -123,7 +108,7 @@ if ($method === 'POST') {
         if (!$id || !$newHash) jsonResponse(['error' => 'Dati mancanti.'], 400);
 
         $db->prepare('UPDATE users SET password_hash = :h WHERE id = :id')
-            ->execute([':h' => $newHash, ':id' => $id]);
+           ->execute([':h' => $newHash, ':id' => $id]);
         jsonResponse(['ok' => true]);
     }
 

@@ -4,29 +4,30 @@
 // Modifica i valori sotto per adattarli al tuo server phpMyAdmin
 // ================================================================
 
-define('DB_HOST', '127.0.0.1');
-define('DB_NAME', 'handtracklis');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_HOST',    'localhost');   // Host MySQL (di solito localhost)
+define('DB_NAME',    'handtracklis'); // Nome del database creato in phpMyAdmin
+define('DB_USER',    'root');        // Utente MySQL
+define('DB_PASS',    '');            // Password MySQL
 define('DB_CHARSET', 'utf8mb4');
 
-function getDB(): PDO
-{
+/**
+ * Restituisce una connessione PDO al database.
+ * La connessione viene riutilizzata (singleton).
+ */
+function getDB(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
 
     $dsn = sprintf(
         'mysql:host=%s;dbname=%s;charset=%s',
-        DB_HOST,
-        DB_NAME,
-        DB_CHARSET
+        DB_HOST, DB_NAME, DB_CHARSET
     );
 
     try {
         $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -38,10 +39,13 @@ function getDB(): PDO
     return $pdo;
 }
 
-function jsonResponse(mixed $data, int $status = 200): never
-{
+// ================================================================
+// Helper: invia una risposta JSON e termina lo script
+// ================================================================
+function jsonResponse(mixed $data, int $status = 200): never {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
+    // Permetti richieste dallo stesso origine (adatta se frontend è su altro dominio)
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
@@ -58,8 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-function getJsonBody(): array
-{
+// ================================================================
+// Helper: legge il body JSON della richiesta
+// ================================================================
+function getJsonBody(): array {
     $raw = file_get_contents('php://input');
     if (!$raw) return [];
     $data = json_decode($raw, true);

@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $body = getJsonBody();
-$email = trim($body['email'] ?? '');
+$email         = trim($body['email']         ?? '');
 $password_hash = trim($body['password_hash'] ?? '');
 
 if (!$email || !$password_hash) {
@@ -35,13 +35,13 @@ if (!$user) {
 
 // Aggiorna status a online
 $db->prepare('UPDATE users SET status_user = "online" WHERE id = :id')
-    ->execute([':id' => $user['id']]);
+   ->execute([':id' => $user['id']]);
 
 jsonResponse([
-    'id' => (int)$user['id'],
+    'id'       => (int)$user['id'],
     'username' => $user['username'],
-    'email' => $user['email'],
+    'email'    => $user['email'],
     'realname' => $user['realName'],
-    'surname' => $user['surname'],
-    'role' => $user['role_user'],
+    'surname'  => $user['surname'],
+    'role'     => $user['role_user'],
 ]);
