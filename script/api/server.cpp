@@ -128,12 +128,20 @@ int main(int argc, char *argv[])
                 {
     std::cout << "Avvio Addestramento IA (.venv)" << std::endl;
 
-    std::string python_path = "../../.venv/Scripts/python.exe";
+    // std::string python_path = "../../.venv/Scripts/python.exe";
+    std::string python_path;
+    std::string full_command;
     std::string script_path = "training.py";
 
-    std::string comando = python_path + " " + script_path;
+#ifdef _WIN32
+        pyrhon_path = "../../.venv/Scripts/python.exe";
+        full_command = python_path + " " + script_path;
+#else
+        python_path = "../../.venv/bin/python";
+        full_command = python_path + " " + script_path + " > /dev/null 2>&1 &";
+#endif
 
-    std::string full_command = "start /B " + comando;
+    std::cout << "Esecuzione comando di sistema: " << full_command << "\n";
 
     int result = system(full_command.c_str());
 

@@ -518,7 +518,9 @@ window.handTracker = async function () {
         btn.textContent = "Addestramento in corso...";
 
         try {
-            const res = await fetch(getServer() + "/train", { method: "POST" });
+            const url_server = `${getServer()}/train`;
+            const res = await fetch(url_server, { method: "POST" });
+
             if (res.ok) {
                 alert("Il server ha avviato Python. Controlla la console del server per i progressi.");
             } else {

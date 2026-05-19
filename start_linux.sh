@@ -1,6 +1,3 @@
-#!/bin/bash
-
-# Configura lo script per fermarsi in caso di errori critici
 set -e
 
 echo "Avvio setup ambiente Completo (Linux/Codespaces)"
@@ -10,12 +7,16 @@ echo ""
 # Sezione Python
 echo "[PYTHON]"
 
-if ! command -v python3 &> /dev/null; then
-    echo "ERRORE: Python3 non è installato sul sistema."
-    echo "Su GitHub Codespaces di solito è preinstallato. Se manca, usa: sudo apt update && sudo apt install -y python3 python3-venv"
-    exit 1
+if ! command -v python3.11 &> /dev/null; then
+    echo "Python 3.11 non trovato. Installazione in corso..."
+    sudo apt update -y -q
+    sudo apt install -y software-properties-common -q
+    sudo add-apt-repository ppa:deadsnakes/ppa -y
+    sudo apt update -y -q
+    sudo apt install -y python3.11 python3.11-venv python3.11-dev -q
+    echo "Python 3.11 installato con successo."
 else
-    echo "Python3 trovato: $(python3 --version)"
+    echo "Python 3.11 trovato: $(python3.11 --version)"
 fi
 
 echo ""
@@ -32,7 +33,7 @@ else
     echo "Ambiente virtuale già esistente."
 fi
 
-# Attivazione venv (Nota la differenza cruciale rispetto a Windows!)
+# Attivazione venv
 source .venv/bin/activate
 
 echo "Aggiornamento pip..."
@@ -65,7 +66,6 @@ fi
 echo "npm trovato: $(npm --version)"
 echo ""
 
-# Installazione moduli Node
 if [ ! -d "node_modules" ]; then
     echo "Installazione moduli Node..."
     npm install
@@ -80,9 +80,7 @@ fi
 
 echo ""
 
-# Avvio servizio
 echo "Avvio frontend..."
-# Su Linux/Codespaces non si usa 'start'. Lanciamo il processo in background con '&'
 npm start &
 
 echo ""

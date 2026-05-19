@@ -1,4 +1,4 @@
-const server = "http://127.0.0.1:5050";
+const server = window.location.hostname.includes("github.dev") ? `https://${window.location.hostname.replace("-80.", "-5050.").replace("-8080.", "-5050.")}` : "http://127.0.0.1:5050";
 let server_connesso = false;
 
 export async function verifica_server() {

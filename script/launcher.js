@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
@@ -24,13 +24,30 @@ function startCppBackend() {
     console.log(`Avvio da: ${cppServerPath}\n`);
     console.log(`Sistema Rilevato: ${isWin ? 'Windows' : 'Linux/Codespaces'}\n`)
 
-    cppProcess = spawn(cppServerPath, [
-        "--root", rootPath,
-        "--dataset", "Segni"
-    ], {
-        cwd: path.join(__dirname, 'api'),
-        stdio: 'inherit'
-    });
+    if (!isWin) {
+        try {
+            console.log("Assegnazione permessi di esecuzione a server_linux...");
+            execSync(`chmod +x "${cppServerPath}"`);
+        } catch (chmodErr) {
+            console.warn("Errore durante il chmod: ", chmodErr.message);
+        }
+    }
+
+    const args = [`--root "${rootPath}"`, `--dataset "Segni"`];
+
+    if (isWin) {
+        cppProcess = spawn(cppServerPath, ["--root", rootPath, "--dataset", "Segni"], {
+            cwd: path.join(__dirname, 'api'),
+            stdio: 'inherit'
+        });
+    }
+    else {
+        cppProcess = spawn(`./${nomeProgramma} ${args.join(' ')}`, {
+            cwd: path.join(__dirname, 'api'),
+            stdio: 'inherit',
+            shell: true
+        });
+    }
 
     cppProcess.on('error', (err) => {
         console.error("Errore avvio:", err.message);
