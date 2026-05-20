@@ -9,8 +9,8 @@ const DETECT_OGNI = 2;
 const model_url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task";
 
 const alfabeto_it = new Set([
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'L',
-    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'Z'
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
 ]);
 
 // Variabili globali
@@ -449,7 +449,10 @@ window.handTracker = async function () {
     window.startCamera(video);
 
     window.addEventListener("keydown", (e) => {
+        //if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
         const keyUpper = e.key.toUpperCase();
+        //console.log(keyUpper);
 
         if (alfabeto_it.has(keyUpper)) {
             if (status === "registrazione") return;
