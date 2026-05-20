@@ -3,6 +3,7 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <mutex>
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -91,6 +92,10 @@ int main(int argc, char *argv[])
     // PARTE DEL SALVATAGGIO
     server.Post("/salva", [](const httplib::Request &req, httplib::Response &res)
                 {
+                
+        static std::mutex mtx;
+        static std::string ultima_lettera = "";
+        static int contatore_frame = 0;
     try {
         auto body = json::parse(req.body);
         
@@ -104,15 +109,24 @@ int main(int argc, char *argv[])
         std::string timestamp = body.value("timestamp", "0");
         auto righe = body["righe"];
 
-        const std::string lettere_valide = "ABCDEFGHILMNOPQRSTUVZ";
-            if (cartella.size() != 1 || lettere_valide.find(cartella[0]) == std::string::npos) {
-                res.status = 400;
-                res.set_content("Lettera non valida", "text/plain");
-                return;
-            }
+        const std::string lettere_valide = "ABCDEFGHILMNOPQRSTUVWXYZ"; 
+        if (cartella.size() != 1 || lettere_valide.find(cartella[0]) == std::string::npos) {
+            res.status = 400;
+            res.set_content("Lettera non valida", "text/plain");
+            return;
+        }
 
         if (salva_dati_csv(cartella, timestamp, righe)) {
-            std::cout << "Salvato frame per lettera: " << cartella << "\n";
+            std::lock_guard<std::mutex> lock(mtx);
+
+            if (cartella != ultima_lettera) {
+                if (!ultima_lettera.empty()) std::cout << "\n"; // Va a capo solo quando cambi lettera
+                ultima_lettera  = cartella;
+                contatore_frame = 0;
+            }
+            contatore_frame++;
+
+            std::cout << "Salvato frame per lettera: '" << cartella << "' | Frame salvati: " << contatore_frame << "          " << std::flush;
             res.set_content("ok", "text/plain");
         } else {
             res.status = 500;
@@ -134,7 +148,7 @@ int main(int argc, char *argv[])
     std::string script_path = "training.py";
 
 #ifdef _WIN32
-        pyrhon_path = "../../.venv/Scripts/python.exe";
+        python_path = "../../.venv/Scripts/python.exe";
         full_command = python_path + " " + script_path;
 #else
         python_path = "../../.venv/bin/python";
