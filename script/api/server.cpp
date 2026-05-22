@@ -5,11 +5,36 @@
 #include <iostream>
 #include <mutex>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <process.h>
+#endif
+
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
 std::string root_dir = "";
 std::string dataset_dir = "Segni";
+
+static fs::file_time_type ora_inizio_train;
+static bool training_in_corso = false;
+static std::string errore_training = "";
+static std::mutex training_mutex;
+
+static fs::path get_executable_path(const char *argv0)
+{
+    fs::path p = argv0;
+    if (p.is_relative())
+        p = fs::current_path() / p;
+    try
+    {
+        return fs::canonical(p);
+    }
+    catch (const std::exception &)
+    {
+        return fs::absolute(p);
+    }
+}
 
 void configura_dataset(int argc, char *argv[])
 {
@@ -23,7 +48,13 @@ void configura_dataset(int argc, char *argv[])
     }
 
     if (root_dir.empty())
-        root_dir = fs::current_path().parent_path().parent_path().string();
+    {
+        fs::path exe_path = get_executable_path(argv[0]);
+        fs::path root_candidate = exe_path;
+        for (int i = 0; i < 3 && !root_candidate.empty(); ++i)
+            root_candidate = root_candidate.parent_path();
+        root_dir = root_candidate.string();
+    }
 
     std::cout << "[Config] Root: " << root_dir << "\n";
     std::cout << "[Config] Dataset: " << dataset_dir << "\n";
@@ -33,7 +64,7 @@ bool salva_dati_csv(const std::string &nome_cartella, const std::string &ts, con
 {
     try
     {
-        fs::path root_path = fs::current_path().parent_path().parent_path();
+        fs::path root_path = root_dir.empty() ? fs::current_path() : fs::path(root_dir);
         fs::path dir_dest = root_path / dataset_dir / nome_cartella;
 
         if (!fs::exists(dir_dest))
@@ -81,6 +112,7 @@ int main(int argc, char *argv[])
 
     httplib::Server server;
 
+    // Routing (anche in locale)
     server.set_pre_routing_handler([](const httplib::Request &, httplib::Response &res)
                                    {
         setup_cors(res);
@@ -89,7 +121,7 @@ int main(int argc, char *argv[])
     server.Options(".*", [](const httplib::Request &, httplib::Response &res)
                    { res.status = 204; });
 
-    // PARTE DEL SALVATAGGIO
+    // Parte del salvataggio file csv
     server.Post("/salva", [](const httplib::Request &req, httplib::Response &res)
                 {
                 
@@ -109,7 +141,7 @@ int main(int argc, char *argv[])
         std::string timestamp = body.value("timestamp", "0");
         auto righe = body["righe"];
 
-        const std::string lettere_valide = "ABCDEFGHILMNOPQRSTUVWXYZ"; 
+        const std::string lettere_valide = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; 
         if (cartella.size() != 1 || lettere_valide.find(cartella[0]) == std::string::npos) {
             res.status = 400;
             res.set_content("Lettera non valida", "text/plain");
@@ -126,7 +158,7 @@ int main(int argc, char *argv[])
             }
             contatore_frame++;
 
-            std::cout << "Salvato frame per lettera: '" << cartella << "' | Frame salvati: " << contatore_frame << "          " << std::flush;
+            std::cout << "\rSalvato frame per lettera: '" << cartella << "' | Frame salvati: " << contatore_frame << std::flush;
             res.set_content("ok", "text/plain");
         } else {
             res.status = 500;
@@ -137,35 +169,96 @@ int main(int argc, char *argv[])
         res.set_content(e.what(), "text/plain");
     } });
 
-    // PARTE DEL TRAINING
-    server.Post("/train", [](const httplib::Request &, httplib::Response &res)
+    // Chiamata bottone HTML per il Training a Python
+    server.Post("/train", [&](const httplib::Request &req, httplib::Response &res)
                 {
-    std::cout << "Avvio Addestramento IA (.venv)" << std::endl;
+        std::cout << "Richiesta di addestramento ricevuta." << std::endl;
 
-    // std::string python_path = "../../.venv/Scripts/python.exe";
-    std::string python_path;
-    std::string full_command;
-    std::string script_path = "training.py";
+        {
+            std::lock_guard<std::mutex> lock(training_mutex);
+            ora_inizio_train = fs::file_time_type::clock::now();
+            training_in_corso = true;
+            errore_training.clear();
+        }
+
+        fs::path root_path = root_dir.empty() ? fs::current_path() : fs::path(root_dir);
+        fs::path script_py = root_path / "script" / "api" / "training.py";
+        fs::path python_path;
 
 #ifdef _WIN32
-        python_path = "../../.venv/Scripts/python.exe";
-        full_command = python_path + " " + script_path;
+            python_path = fs::absolute(root_path / ".venv" / "Scripts" / "python.exe");
 #else
-        python_path = "../../.venv/bin/python";
-        full_command = python_path + " " + script_path + " > /dev/null 2>&1 &";
+            python_path = fs::absolute(root_path / ".venv" / "bin" / "python");
 #endif
 
-    std::cout << "Esecuzione comando di sistema: " << full_command << "\n";
+        if(!fs::exists(script_py)) {
+            std::cerr << "Script non trovato: " << script_py << "\n";
+            {
+                std::lock_guard<std::mutex> lock(training_mutex);
+                training_in_corso = false;
+                errore_training = "Script 'training.py' non trovato nel percorso indicato.";
+            }
+            res.status = 500;
+            res.set_content("Script training non trovato", "text/plain");
+            return;
+        }
+    
+        std::string cmd_python = python_path.make_preferred().string();
+        std::string cmd_script = script_py.make_preferred().string();
+        std::string full_command;
 
-    int result = system(full_command.c_str());
+#ifdef _WIN32
+            full_command = "\"" + (std::string)"\"" + cmd_python + "\" \"" + cmd_script + "\"" + "\"";
+#else
+            full_command = "\"" + cmd_python + "\" \"" + cmd_script + "\"";
+#endif
 
-    if (result == 0) {
-        res.set_content("Training avviato in background", "text/plain");
-    } else {
-        res.status = 500;
-        res.set_content("Errore nell'avvio dello script", "text/plain");
-    } });
+        std::thread([full_command]() {
+            std::cout << "Avvio dello script Python...\n" << std::flush;
 
+            int ris = std::system(full_command.c_str());
+            std::lock_guard<std::mutex> lock(training_mutex);
+
+            if(ris != 0) {
+                std::cerr << "Lo script Python è fallito con codice: " << ris << "\n";
+                training_in_corso = false;
+                errore_training = "Errore interno Python con Codice: '" + std::to_string(ris) + "'";
+            }
+            else {
+                std::cout << "\nScript Python terminato con successo.\n" << std::flush;
+            }
+        }).detach();
+
+        res.status = 200;
+        res.set_content("Training avviato", "text/plain"); });
+
+    // Status del training (alert per il javascript)
+    server.Get("/status-train", [&](const httplib::Request &req, httplib::Response &res)
+               {
+        
+        if (!errore_training.empty()) {
+            res.status = 500;
+            res.set_content(errore_training, "text/plain");
+            return;
+        }
+
+        fs::path root_path = root_dir.empty() ? fs::current_path() : fs::path(root_dir);
+        fs::path onnx_path = fs::absolute(root_path / "modello" / "modello_lis_italiano.onnx");
+
+        if (fs::exists(onnx_path)) {
+            auto ultima_modifica = fs::last_write_time(onnx_path);
+
+            std::lock_guard<std::mutex> lock(training_mutex);
+            if (ultima_modifica > ora_inizio_train && training_in_corso) {
+                training_in_corso = false;
+                res.set_content("Completato", "text/plain");
+                return;
+            }
+        }
+
+        res.set_content("Ancora in corso...", "text/plain"); });
+
+    // Ping al javascript
     server.Get("/ping", [](const httplib::Request &, httplib::Response &res)
                { res.set_content("pong", "text/plain"); });
 

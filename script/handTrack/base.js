@@ -519,21 +519,58 @@ window.handTracker = async function () {
 
         btn.disabled = true;
         btn.textContent = "Addestramento in corso...";
+        btn.style.cursor = "not-allowed";
 
         try {
             const url_server = `${getServer()}/train`;
             const res = await fetch(url_server, { method: "POST" });
 
             if (res.ok) {
+                console.log("Training avviato sul server...");
+
+                const intervallo = setInterval(async () => {
+                    try {
+                        const url_status_train = `${getServer()}/status-train`;
+                        const statusRes = await fetch(url_status_train);
+
+                        if (statusRes.ok) {
+                            const stato = await statusRes.text();
+
+                            if (stato.trim() === "Completato") {
+                                clearInterval(intervallo);
+
+                                alert("Modello '.onnx' aggiornato e generato con successo\nVerrà ricaricata la pagina per apportare le modifiche");
+                                window.location.reload();
+                            }
+                        }
+                        else {
+                            clearInterval(intervallo);
+
+                            const messaggioErrore = await statusRes.text();
+                            alert(`${messaggioErrore}\nAttendere prego!`);
+
+                            btn.disabled = false;
+                            btn.textContent = "Allena Modello IA";
+                            btn.style.cursor = "pointer";
+                        }
+                    }
+                    catch (err) {
+                        console.error("Errore durante il controllo dello stato: ", err);
+                        clearInterval(intervallo);
+                    }
+                }, 3000);
                 alert("Il server ha avviato Python. Controlla la console del server per i progressi.");
             } else {
                 alert("Errore nell'avvio dell'addestramento.");
+                btn.disabled = false;
+                btn.textContent = "Allena Modello IA";
+                btn.style.cursor = "pointer";
             }
         } catch (e) {
-            alert("Impossibile comunicare con il server C++.");
-        } finally {
+            alert("Impossibile connettersi al server per avviare l'addestramento.");
             btn.disabled = false;
             btn.textContent = "Allena Modello IA";
+            btn.style.cursor = "pointer";
         }
     });
 
