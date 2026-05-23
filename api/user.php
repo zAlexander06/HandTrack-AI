@@ -2,13 +2,14 @@
 // ================================================================
 // api/user.php — Operazioni sull'utente loggato
 //
-// GET  ?action=get&id=X                      → dati utente
-// POST { action:"logout",         id }       → status offline
-// POST { action:"update_status",  id, status }
-// POST { action:"update_profile", id, realname, surname, username }
-// POST { action:"change_password", id, old_hash, new_hash }
-// POST { action:"forgot_check",   email }    → verifica email esiste
-// POST { action:"forgot_reset",   id, new_hash } → aggiorna password
+// GET  ?action=get                               → dati utente (dalla sessione)
+// POST { action:"heartbeat" }
+// POST { action:"update_profile",  realname, surname, username }
+// POST { action:"change_password", old_password, new_password }
+// POST { action:"forgot_check",    email }        → NON richiede auth
+// POST { action:"forgot_reset",    email, new_password } → NON richiede auth
+// POST { action:"schedule_delete" }
+// POST { action:"cancel_delete" }
 // ================================================================
 require_once __DIR__ . '/../config/db.php';
 
@@ -17,18 +18,32 @@ $db     = getDB();
 
 // ── GET ──────────────────────────────────────────────────────────
 if ($method === 'GET') {
-    $id = (int)($_GET['id'] ?? 0);
-    if (!$id) jsonResponse(['error' => 'ID mancante.'], 400);
+    $action = $_GET['action'] ?? 'get';
 
-    $stmt = $db->prepare(
-        'SELECT id, username, email, realName, surname, role_user, status_user
-         FROM users WHERE id = :id LIMIT 1'
-    );
-    $stmt->execute([':id' => $id]);
-    $user = $stmt->fetch();
+    if ($action === 'get') {
+        $id = requireAuth(); // ← ID dalla sessione, non dall'URL
 
-    if (!$user) jsonResponse(['error' => 'Utente non trovato.'], 404);
-    jsonResponse($user);
+        $stmt = $db->prepare(
+            'SELECT id, username, email, realName, surname, role_user, status_user, scheduled_deletion_at
+             FROM users WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $user = $stmt->fetch();
+
+        if (!$user) jsonResponse(['ok' => false, 'error' => 'Utente non trovato.'], 404);
+
+        // ── Controllo ban ─────────────────────────────────────────
+        if ($user['role_user'] === 'onThinIce') {
+            // Distrugge la sessione e segnala al client di reindirizzare
+            session_unset();
+            session_destroy();
+            jsonResponse(['ok' => false, 'error' => 'banned', 'redirect' => 'index.html'], 403);
+        }
+
+        jsonResponse(['ok' => true, 'user' => $user]);
+    }
+
+    jsonResponse(['ok' => false, 'error' => 'Azione non riconosciuta.'], 400);
 }
 
 // ── POST ─────────────────────────────────────────────────────────
@@ -36,98 +51,160 @@ if ($method === 'POST') {
     $body   = getJsonBody();
     $action = $body['action'] ?? '';
 
-    // ── logout / update_status ───────────────────────────────────
-    if ($action === 'logout' || $action === 'update_status') {
-        $id     = (int)($body['id'] ?? 0);
+    // ── forgot_check — unica action che NON richiede login ───────
+    if ($action === 'forgot_check') {
+        $email = trim($body['email'] ?? '');
+        if (!$email) jsonResponse(['ok' => false, 'error' => 'Email mancante.'], 400);
 
-        $status = $action === 'logout' ? 'offline' : ($body['status'] ?? 'offline');
-        if (!$id) jsonResponse(['error' => 'ID mancante.'], 400);
-
-        $db->prepare('UPDATE users SET status_user = :s WHERE id = :id')
-            ->execute([':s' => $status, ':id' => $id]);
-
-
-        if ($action === 'logout') {
-            $_SESSION = array();
-
-            // Quando avremo i cookie
-            // if(ini_get("session.use_cookies")) {
-            //     $cookie = session_get_cookie_params();
-            //     setcookie(session_name(), '', time() - 42000, $cookie["path"], $cookie['domain'], $cookie['secure'], $cookie['httponly']);
-            // }
-
-            session_destroy();
-        }
+        $stmt = $db->prepare('SELECT id FROM users WHERE email = :e LIMIT 1');
+        $stmt->execute([':e' => $email]);
+        $row = $stmt->fetch();
+        if (!$row) jsonResponse(['ok' => false, 'error' => 'Nessun account trovato con questa email.'], 404);
+        // Non esponiamo l'ID: usiamo l'email come riferimento nel reset
         jsonResponse(['ok' => true]);
-        exit();
+    }
+
+    // ── forgot_reset — NON richiede login ────────────────────────
+    if ($action === 'forgot_reset') {
+        $email       = trim($body['email']        ?? '');
+        $newPassword = trim($body['new_password'] ?? '');
+        if (!$email || !$newPassword) jsonResponse(['ok' => false, 'error' => 'Dati mancanti.'], 400);
+
+        // Validazione password
+        $pwErrors = [];
+        if (strlen($newPassword) < 8)             $pwErrors[] = 'almeno 8 caratteri';
+        if (!preg_match('/[A-Z]/', $newPassword))  $pwErrors[] = 'almeno una lettera maiuscola';
+        if (!preg_match('/[a-z]/', $newPassword))  $pwErrors[] = 'almeno una lettera minuscola';
+        if (!preg_match('/[0-9]/', $newPassword))  $pwErrors[] = 'almeno un numero';
+        if (!preg_match('/[\W_]/', $newPassword))  $pwErrors[] = 'almeno un carattere speciale';
+        if ($pwErrors) jsonResponse(['ok' => false, 'error' => 'Password non valida: ' . implode(', ', $pwErrors) . '.'], 422);
+
+        $hash = password_hash($newPassword, PASSWORD_BCRYPT);
+
+        $stmt = $db->prepare('UPDATE users SET password_hash = :h WHERE email = :e');
+        $stmt->execute([':h' => $hash, ':e' => $email]);
+
+        if ($stmt->rowCount() === 0) jsonResponse(['ok' => false, 'error' => 'Email non trovata.'], 404);
+        jsonResponse(['ok' => true]);
+    }
+
+    // ── Tutte le action successive richiedono login ───────────────
+    $id = requireAuth();
+
+    // ── heartbeat ────────────────────────────────────────────────
+    if ($action === 'heartbeat') {
+        $db->prepare(
+            "UPDATE users SET status_user = 'online', last_seen = NOW() WHERE id = :id"
+        )->execute([':id' => $id]);
+        jsonResponse(['ok' => true]);
     }
 
     // ── update_profile ───────────────────────────────────────────
     if ($action === 'update_profile') {
-        $id       = (int)($body['id']       ?? 0);
-        $realname = trim($body['realname']  ?? '');
-        $surname  = trim($body['surname']   ?? '');
-        $username = trim($body['username']  ?? '');
-        if (!$id || !$realname || !$surname || !$username) {
-            jsonResponse(['error' => 'Dati mancanti.'], 400);
+        $realname = trim($body['realname'] ?? '');
+        $surname  = trim($body['surname']  ?? '');
+        $username = trim($body['username'] ?? '');
+        if (!$realname || !$surname || !$username) {
+            jsonResponse(['ok' => false, 'error' => 'Dati mancanti.'], 400);
         }
         try {
             $db->prepare(
                 'UPDATE users SET realName = :r, surname = :s, username = :u WHERE id = :id'
             )->execute([':r' => $realname, ':s' => $surname, ':u' => $username, ':id' => $id]);
+
+            // Aggiorna anche la sessione
+            $_SESSION['username'] = $username;
+
             jsonResponse(['ok' => true]);
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
                 $msg = $e->getMessage();
-                if (stripos($msg, 'username') !== false) jsonResponse(['error' => 'Username già in uso.'], 409);
-                if (stripos($msg, 'realName') !== false) jsonResponse(['error' => 'Nome già in uso.'], 409);
-                jsonResponse(['error' => 'Dati già in uso.'], 409);
+                if (stripos($msg, 'username') !== false) jsonResponse(['ok' => false, 'error' => 'Username già in uso.'], 409);
+                jsonResponse(['ok' => false, 'error' => 'Dati già in uso.'], 409);
             }
-            jsonResponse(['error' => 'Errore aggiornamento.'], 500);
+            jsonResponse(['ok' => false, 'error' => 'Errore aggiornamento.'], 500);
         }
     }
 
     // ── change_password ──────────────────────────────────────────
     if ($action === 'change_password') {
-        $id      = (int)($body['id']       ?? 0);
-        $oldHash = trim($body['old_hash']  ?? '');
-        $newHash = trim($body['new_hash']  ?? '');
-        if (!$id || !$oldHash || !$newHash) jsonResponse(['error' => 'Dati mancanti.'], 400);
+        $oldPassword = trim($body['old_password'] ?? '');
+        $newPassword = trim($body['new_password'] ?? '');
+        if (!$oldPassword || !$newPassword) jsonResponse(['ok' => false, 'error' => 'Dati mancanti.'], 400);
 
-        // Verifica vecchia password
-        $stmt = $db->prepare('SELECT id FROM users WHERE id = :id AND password_hash = :h LIMIT 1');
-        $stmt->execute([':id' => $id, ':h' => $oldHash]);
-        if (!$stmt->fetch()) jsonResponse(['error' => 'La password attuale non è corretta.'], 401);
-
-        $db->prepare('UPDATE users SET password_hash = :h WHERE id = :id')
-            ->execute([':h' => $newHash, ':id' => $id]);
-        jsonResponse(['ok' => true]);
-    }
-
-    // ── forgot_check ─────────────────────────────────────────────
-    if ($action === 'forgot_check') {
-        $email = trim($body['email'] ?? '');
-        if (!$email) jsonResponse(['error' => 'Email mancante.'], 400);
-
-        $stmt = $db->prepare('SELECT id FROM users WHERE email = :e LIMIT 1');
-        $stmt->execute([':e' => $email]);
+        // Verifica vecchia password con bcrypt
+        $stmt = $db->prepare('SELECT password_hash FROM users WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
-        if (!$row) jsonResponse(['error' => 'Nessun account trovato con questa email.'], 404);
-        jsonResponse(['id' => (int)$row['id']]);
-    }
+        if (!$row || !password_verify($oldPassword, $row['password_hash'])) {
+            jsonResponse(['ok' => false, 'error' => 'La password attuale non è corretta.'], 401);
+        }
 
-    // ── forgot_reset ─────────────────────────────────────────────
-    if ($action === 'forgot_reset') {
-        $id      = (int)($body['id']       ?? 0);
-        $newHash = trim($body['new_hash']  ?? '');
-        if (!$id || !$newHash) jsonResponse(['error' => 'Dati mancanti.'], 400);
+        // Validazione nuova password
+        $pwErrors = [];
+        if (strlen($newPassword) < 8)             $pwErrors[] = 'almeno 8 caratteri';
+        if (!preg_match('/[A-Z]/', $newPassword))  $pwErrors[] = 'almeno una lettera maiuscola';
+        if (!preg_match('/[a-z]/', $newPassword))  $pwErrors[] = 'almeno una lettera minuscola';
+        if (!preg_match('/[0-9]/', $newPassword))  $pwErrors[] = 'almeno un numero';
+        if (!preg_match('/[\W_]/', $newPassword))  $pwErrors[] = 'almeno un carattere speciale';
+        if ($pwErrors) jsonResponse(['ok' => false, 'error' => 'Password non valida: ' . implode(', ', $pwErrors) . '.'], 422);
 
+        $hash = password_hash($newPassword, PASSWORD_BCRYPT);
         $db->prepare('UPDATE users SET password_hash = :h WHERE id = :id')
-            ->execute([':h' => $newHash, ':id' => $id]);
+           ->execute([':h' => $hash, ':id' => $id]);
         jsonResponse(['ok' => true]);
     }
 
-    jsonResponse(['error' => 'Azione non riconosciuta.'], 400);
+    // ── schedule_delete ──────────────────────────────────────────
+    if ($action === 'schedule_delete') {
+        $stmt = $db->prepare(
+            'SELECT id, scheduled_deletion_at FROM users WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $user = $stmt->fetch();
+        if (!$user) jsonResponse(['ok' => false, 'error' => 'Utente non trovato.'], 404);
+
+        if ($user['scheduled_deletion_at']) {
+            jsonResponse([
+                'ok'               => true,
+                'already_scheduled' => true,
+                'deletion_date'    => $user['scheduled_deletion_at'],
+            ]);
+        }
+
+        $deletionDate = (new DateTime('+7 days'))->format('Y-m-d H:i:s');
+        $db->prepare(
+            "UPDATE users SET scheduled_deletion_at = :d, status_user = 'offline' WHERE id = :id"
+        )->execute([':d' => $deletionDate, ':id' => $id]);
+
+        jsonResponse(['ok' => true, 'deletion_date' => $deletionDate]);
+    }
+
+    // ── cancel_delete ────────────────────────────────────────────
+    if ($action === 'cancel_delete') {
+        $stmt = $db->prepare(
+            'SELECT scheduled_deletion_at FROM users WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $user = $stmt->fetch();
+        if (!$user) jsonResponse(['ok' => false, 'error' => 'Utente non trovato.'], 404);
+
+        if (!$user['scheduled_deletion_at']) {
+            jsonResponse(['ok' => false, 'error' => 'Nessuna eliminazione schedulata.'], 409);
+        }
+
+        $deletionDate = new DateTime($user['scheduled_deletion_at']);
+        if ($deletionDate <= new DateTime()) {
+            jsonResponse(['ok' => false, 'error' => 'Il termine per annullare è scaduto.'], 410);
+        }
+
+        $db->prepare('UPDATE users SET scheduled_deletion_at = NULL WHERE id = :id')
+           ->execute([':id' => $id]);
+
+        jsonResponse(['ok' => true]);
+    }
+
+    jsonResponse(['ok' => false, 'error' => 'Azione non riconosciuta.'], 400);
 }
 
-jsonResponse(['error' => 'Metodo non consentito.'], 405);
+jsonResponse(['ok' => false, 'error' => 'Metodo non consentito.'], 405);

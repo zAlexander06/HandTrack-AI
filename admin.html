@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandTrackLIS — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   RESET & BASE
+================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0a0b0e;
+  --bg2:       #111318;
+  --bg3:       #181b22;
+  --surface:   #1a1d26;
+  --surface2:  #20242f;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --text:      #e8eaf0;
+  --text2:     #8b90a0;
+  --text3:     #555a6a;
+  --accent:    #2563eb;
+  --accent2:   #1d4ed8;
+  --green:     #10b981;
+  --red:       #ef4444;
+  --orange:    #f59e0b;
+  --purple:    #8b5cf6;
+  --cyan:      #06b6d4;
+  --sidebar-w: 230px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ================================================================
+   SIDEBAR
+================================================================ */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sidebar-logo-icon svg { width: 16px; height: 16px; }
+.sidebar-logo-text { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+.sidebar-logo-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+  background: rgba(37,99,235,0.2); color: var(--accent);
+  border: 1px solid rgba(37,99,235,0.3);
+  border-radius: 4px; padding: 1px 5px; margin-left: auto;
+  text-transform: uppercase;
+}
+
+.sidebar-section {
+  padding: 12px 10px 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.09em;
+  color: var(--text3); text-transform: uppercase;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 1px 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px; font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  border: none; background: none; width: calc(100% - 16px);
+  text-align: left;
+}
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active { background: rgba(37,99,235,0.15); color: var(--accent); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active svg { opacity: 1; }
+.nav-badge {
+  margin-left: auto; background: var(--red); color: #fff;
+  border-radius: 999px; font-size: 10px; font-weight: 700;
+  padding: 1px 6px; min-width: 18px; text-align: center;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+}
+.admin-info {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 8px;
+  background: var(--surface);
+  transition: background 0.15s;
+}
+.admin-info:hover { background: var(--surface2); }
+.sidebar-logo:hover .sidebar-logo-text { color: var(--accent); }
+.admin-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.admin-name { font-size: 12px; font-weight: 600; }
+.admin-role { font-size: 10px; color: var(--text3); }
+
+/* ================================================================
+   MAIN AREA
+================================================================ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.topbar {
+  height: 52px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+.topbar-sub   { font-size: 12px; color: var(--text3); margin-left: 4px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.content { padding: 24px; flex: 1; }
+
+/* ================================================================
+   CARDS & LAYOUT
+================================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+.card-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--c, var(--accent));
+}
+.stat-value { font-family: 'Syne', sans-serif; font-size: 26px; line-height: 1.1; }
+.stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; font-weight: 500; }
+.stat-sub   { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+/* ================================================================
+   TABLE
+================================================================ */
+.table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: var(--surface2); }
+th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700;
+     letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3);
+     border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ================================================================
+   BADGES
+================================================================ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+}
+.badge-green  { background: rgba(16,185,129,0.1); color: var(--green); }
+.badge-red    { background: rgba(239,68,68,0.1);  color: var(--red);   }
+.badge-orange { background: rgba(245,158,11,0.1); color: var(--orange); }
+.badge-blue   { background: rgba(37,99,235,0.12); color: var(--accent); }
+.badge-purple { background: rgba(139,92,246,0.12);color: var(--purple); }
+.badge-gray   { background: rgba(255,255,255,0.06); color: var(--text2); }
+.badge-dot    { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ================================================================
+   BUTTONS
+================================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text); transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn:hover   { background: var(--bg3); }
+.btn:active  { transform: scale(0.97); }
+.btn-primary { background: var(--accent); border-color: transparent; color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-red     { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: var(--red); }
+.btn-red:hover { background: rgba(239,68,68,0.2); }
+.btn-green   { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--green); }
+.btn-green:hover { background: rgba(16,185,129,0.2); }
+.btn-orange  { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: var(--orange); }
+.btn-orange:hover { background: rgba(245,158,11,0.2); }
+.btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+.btn-icon { width: 30px; height: 30px; padding: 0; border-radius: 7px; }
+
+/* ================================================================
+   INPUTS
+================================================================ */
+.input {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px;
+  padding: 8px 12px; color: var(--text); font-size: 13px; font-family: inherit;
+  width: 100%; transition: border-color 0.15s;
+}
+.input:focus { outline: none; border-color: var(--accent); }
+.input::placeholder { color: var(--text3); }
+select.input { cursor: pointer; }
+
+.search-wrap { position: relative; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text3); pointer-events: none; }
+.search-wrap .input { padding-left: 34px; }
+
+/* ================================================================
+   TOOLBAR
+================================================================ */
+.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+
+/* ================================================================
+   MODAL
+================================================================ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 24px; width: 100%; max-width: 440px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+}
+.modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; margin-bottom: 16px; }
+.modal-body  { display: flex; flex-direction: column; gap: 12px; }
+.modal-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.modal-footer { display: flex; gap: 8px; margin-top: 18px; }
+.modal-footer .btn { flex: 1; justify-content: center; padding: 10px; }
+
+/* ================================================================
+   TOAST
+================================================================ */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  transform: translateY(80px); opacity: 0;
+  transition: transform 0.3s, opacity 0.3s;
+  pointer-events: none;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+.toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.toast-dot.err { background: var(--red); }
+
+/* ================================================================
+   DETAIL DRAWER
+================================================================ */
+.drawer-overlay {
+  display: none; position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+}
+.drawer-overlay.open { display: block; }
+.drawer {
+  position: fixed; right: 0; top: 0; bottom: 0; z-index: 91;
+  width: 400px; background: var(--bg2);
+  border-left: 1px solid var(--border2);
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+}
+.drawer.open { transform: translateX(0); }
+.drawer-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg2); z-index: 1;
+}
+.drawer-body  { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.drawer-section { display: flex; flex-direction: column; gap: 6px; }
+.drawer-section-title { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
+.drawer-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.drawer-row-label { color: var(--text2); min-width: 100px; flex-shrink: 0; }
+.drawer-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ================================================================
+   EMPTY STATE
+================================================================ */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text2); }
+.empty-state svg { width: 36px; height: 36px; opacity: 0.25; margin-bottom: 10px; }
+.empty-state p { font-size: 13px; }
+
+/* ================================================================
+   PAGINATION
+================================================================ */
+.pagination { display: flex; align-items: center; gap: 6px; margin-top: 14px; }
+.page-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-size: 12px; cursor: pointer; }
+.page-btn:hover { border-color: var(--accent); color: var(--accent); }
+.page-btn.active { background: var(--accent); border-color: transparent; color: #fff; }
+.page-info { font-size: 12px; color: var(--text3); margin-left: auto; }
+
+/* ================================================================
+   TABS
+================================================================ */
+.tabs { display: flex; gap: 2px; background: var(--bg3); border-radius: 8px; padding: 3px; margin-bottom: 16px; }
+.tab { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text2); border: none; background: none; }
+.tab.active { background: var(--surface2); color: var(--text); }
+
+/* ================================================================
+   LOG ITEM
+================================================================ */
+.log-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.log-item:last-child { border-bottom: none; }
+.log-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+.log-info { flex: 1; min-width: 0; }
+.log-action { font-size: 13px; font-weight: 500; }
+.log-meta   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ================================================================
+   UTILS
+================================================================ */
+.flex { display: flex; } .items-center { align-items: center; } .gap-2 { gap: 8px; }
+.mt-2 { margin-top: 8px; } .mb-3 { margin-bottom: 12px; }
+.hidden { display: none !important; }
+.text-red { color: var(--red); } .text-green { color: var(--green); }
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ========== SIDEBAR ========== -->
+<nav class="sidebar">
+  <div class="sidebar-logo" onclick="window.location.href='index.html'" style="cursor:pointer;" title="Torna alla Dashboard">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9"/></svg>
+    </div>
+    <span class="sidebar-logo-text">HandTrackLIS</span>
+    <span class="sidebar-logo-badge">Admin</span>
+  </div>
+
+  <div class="sidebar-section">Dashboard</div>
+  <button class="nav-item active" onclick="showSection('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 17h7M17 14v7"/></svg>
+    Panoramica
+  </button>
+
+  <div class="sidebar-section">Moderazione</div>
+  <button class="nav-item" onclick="showSection('users')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Utenti
+  </button>
+  <button class="nav-item" onclick="showSection('reports')" id="nav-reports">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Segnalazioni
+    <span class="nav-badge hidden" id="reports-badge">0</span>
+  </button>
+  <button class="nav-item" onclick="showSection('log')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+    Log Azioni
+  </button>
+
+  <div class="sidebar-section">Configurazione</div>
+  <button class="nav-item" onclick="showSection('banned-words')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+    Parole Bannate
+  </button>
+
+  <div class="sidebar-footer">
+    <div class="admin-info" onclick="sessionStorage.setItem('htl_goto','page-profile');window.location.href='index.html';" style="cursor:pointer;" title="Vai al tuo profilo">
+      <div class="admin-avatar" id="sb-avatar">?</div>
+      <div>
+        <div class="admin-name" id="sb-name">—</div>
+        <div class="admin-role" id="sb-role">—</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ========== MAIN ========== -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Panoramica</span>
+    <span class="topbar-sub" id="topbar-sub"></span>
+    <div class="topbar-right">
+      <button class="btn btn-sm" onclick="refreshCurrent()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Aggiorna
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ======================================================
+         SECTION: STATS
+    ====================================================== -->
+    <div id="section-stats">
+      <div class="stats-grid" id="stats-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;"><div class="spinner"></div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card">
+          <div class="card-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Distribuzione Ruoli
+          </div>
+          <div id="roles-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            Azioni Rapide
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn" onclick="showSection('users')" style="justify-content:flex-start;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              Gestisci utenti
+            </button>
+            <button class="btn" onclick="showSection('reports')" style="justify-content:flex-start;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+              Vedi segnalazioni aperte
+            </button>
+            <button class="btn" onclick="showSection('banned-words')" style="justify-content:flex-start;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              Gestisci parole bannate
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         SECTION: USERS
+    ====================================================== -->
+    <div id="section-users" class="hidden">
+      <div class="toolbar">
+        <div class="search-wrap" style="width:280px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="input" id="user-search" placeholder="Cerca per username, email, nome…" oninput="debounceUserSearch()" />
+        </div>
+        <select class="input" style="width:160px;" id="role-filter" onchange="loadUsers(1)">
+          <option value="">Tutti i ruoli</option>
+          <option value="utente">Utente</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+          <option value="onThinIce">Bannato</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Utente</th>
+              <th>Email</th>
+              <th>Ruolo</th>
+              <th>Stato</th>
+              <th>Iscritto</th>
+              <th>Segnalazioni</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:30px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="users-pagination"></div>
+    </div>
+
+    <!-- ======================================================
+         SECTION: REPORTS
+    ====================================================== -->
+    <div id="section-reports" class="hidden">
+      <div class="tabs" id="reports-tabs">
+        <button class="tab active" onclick="switchReportTab('pending')">In attesa</button>
+        <button class="tab" onclick="switchReportTab('reviewed')">Riviste</button>
+        <button class="tab" onclick="switchReportTab('resolved')">Risolte</button>
+        <button class="tab" onclick="switchReportTab('all')">Tutte</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Segnalato da</th>
+              <th>Utente segnalato</th>
+              <th>Motivo</th>
+              <th>Stato</th>
+              <th>Data</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="reports-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:30px;"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="reports-pagination"></div>
+    </div>
+
+    <!-- ======================================================
+         SECTION: LOG
+    ====================================================== -->
+    <div id="section-log" class="hidden">
+      <div class="card">
+        <div class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Log moderazione
+        </div>
+        <div id="log-list"></div>
+        <div class="pagination" id="log-pagination" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         SECTION: BANNED WORDS
+    ====================================================== -->
+    <div id="section-banned-words" class="hidden">
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="openAddWordModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Aggiungi parola
+        </button>
+        <span id="word-count" style="font-size:12px;color:var(--text2);">— parole</span>
+      </div>
+      <div class="card">
+        <div id="words-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ===================== TOAST ===================== -->
+<div id="toast"><div class="toast-dot" id="toast-dot"></div><span id="toast-msg">OK</span></div>
+
+<!-- ===================== USER DRAWER ===================== -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="user-drawer">
+  <div class="drawer-header">
+    <div class="admin-avatar" id="drawer-avatar" style="width:36px;height:36px;font-size:14px;">?</div>
+    <div>
+      <div style="font-weight:700;font-size:15px;" id="drawer-username">—</div>
+      <div style="font-size:11px;color:var(--text3);" id="drawer-email">—</div>
+    </div>
+    <button class="btn btn-icon btn-sm" style="margin-left:auto;" onclick="closeDrawer()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <!-- info -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Informazioni</div>
+      <div class="drawer-row"><span class="drawer-row-label">Nome</span><span id="dr-name">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-label">Cognome</span><span id="dr-surname">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-label">Ruolo</span><span id="dr-role">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-label">Stato</span><span id="dr-status">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-label">Iscritto il</span><span id="dr-created">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-label">Ultima attività</span><span id="dr-lastseen">—</span></div>
+      <div class="drawer-row hidden" id="dr-del-row"><span class="drawer-row-label">Eliminazione</span><span id="dr-deletion" class="text-red">—</span></div>
+    </div>
+    <!-- azioni -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Azioni</div>
+      <div class="drawer-actions" id="drawer-actions"></div>
+    </div>
+    <!-- storico mod -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Storico moderazione</div>
+      <div id="dr-mod-log" style="display:flex;flex-direction:column;gap:0;"></div>
+    </div>
+    <!-- report -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Segnalazioni ricevute</div>
+      <div id="dr-reports" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Ban modal -->
+<div class="modal-overlay" id="modal-ban">
+  <div class="modal">
+    <div class="modal-title"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='4.93' y1='4.93' x2='19.07' y2='19.07'/%3E%3C/svg%3E" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;" alt=""> Banna utente</div>
+    <div class="modal-body">
+      <div>
+        <div class="modal-label">Motivo del ban</div>
+        <textarea class="input" id="ban-reason" rows="3" placeholder="Descrivi il motivo…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-ban')">Annulla</button>
+      <button class="btn btn-red" onclick="confirmBan()">Applica ban</button>
+    </div>
+  </div>
+</div>
+
+<!-- Warn modal -->
+<div class="modal-overlay" id="modal-warn">
+  <div class="modal">
+    <div class="modal-title"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;" alt=""> Avvisa utente</div>
+    <div class="modal-body">
+      <div>
+        <div class="modal-label">Motivo dell'avviso</div>
+        <textarea class="input" id="warn-reason" rows="3" placeholder="Descrivi il motivo…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-warn')">Annulla</button>
+      <button class="btn btn-orange" onclick="confirmWarn()">Invia avviso</button>
+    </div>
+  </div>
+</div>
+
+<!-- Set role modal -->
+<div class="modal-overlay" id="modal-role">
+  <div class="modal">
+    <div class="modal-title"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;" alt=""> Cambia ruolo</div>
+    <div class="modal-body">
+      <div>
+        <div class="modal-label">Nuovo ruolo</div>
+        <select class="input" id="role-select">
+          <option value="utente">Utente</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+          <option value="onThinIce">onThinIce (bannato)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-role')">Annulla</button>
+      <button class="btn btn-primary" onclick="confirmRole()">Salva ruolo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete user modal -->
+<div class="modal-overlay" id="modal-delete-user">
+  <div class="modal">
+    <div class="modal-title"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3Cpath d='M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/%3E%3C/svg%3E" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;" alt=""> Elimina account</div>
+    <div class="modal-body">
+      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:12px;font-size:13px;color:var(--text2);">
+        Questa azione è <strong style="color:var(--red);">irreversibile</strong>. L'account e tutti i dati associati verranno eliminati immediatamente.
+      </div>
+      <div>
+        <div class="modal-label">Motivo (per il log)</div>
+        <textarea class="input" id="delete-user-reason" rows="2" placeholder="Motivo…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-delete-user')">Annulla</button>
+      <button class="btn btn-red" onclick="confirmDeleteUser()">Elimina definitivamente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add banned word modal -->
+<div class="modal-overlay" id="modal-add-word">
+  <div class="modal">
+    <div class="modal-title"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;" alt=""> Aggiungi parola bannata</div>
+    <div class="modal-body">
+      <div>
+        <div class="modal-label">Parola</div>
+        <input class="input" id="new-word-input" placeholder="Inserisci la parola…" onkeydown="if(event.key==='Enter')confirmAddWord()">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-word')">Annulla</button>
+      <button class="btn btn-primary" onclick="confirmAddWord()">Aggiungi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Resolve report modal -->
+<div class="modal-overlay" id="modal-resolve-report">
+  <div class="modal">
+    <div class="modal-title"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpolyline points='22 4 12 14.01 9 11.01'/%3E%3C/svg%3E" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;" alt=""> Risolvi segnalazione</div>
+    <div class="modal-body">
+      <div>
+        <div class="modal-label">Esito</div>
+        <select class="input" id="resolve-resolution">
+          <option value="reviewed">Rivista (nessuna azione)</option>
+          <option value="resolved">Risolta (azione applicata)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-resolve-report')">Annulla</button>
+      <button class="btn btn-green" onclick="confirmResolveReport()">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// CONFIGURAZIONE
+// ================================================================
+const API_BASE = '/api'; // Modifica se il backend è altrove
+
+// ================================================================
+// STATE
+// ================================================================
+let currentSection = 'stats';
+let currentAdminRole = 'moderator';
+let activeUserId = null;
+
+let usersPage    = 1;
+let reportsPage  = 1;
+let logPage      = 1;
+let reportStatus = 'pending';
+let searchTimer  = null;
+
+// ================================================================
+// UTILS
+// ================================================================
+async function api(endpoint, options = {}) {
+  const res = await fetch(API_BASE + endpoint, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  const data = await res.json();
+  return { status: res.status, data };
+}
+
+function post(endpoint, body) {
+  return api(endpoint, { method: 'POST', body: JSON.stringify(body) });
+}
+
+function toast(msg, ok = true) {
+  const el = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-dot').className = 'toast-dot' + (ok ? '' : ' err');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function fmt(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function roleBadge(role) {
+  const map = {
+    admin:      '<span class="badge badge-red">Admin</span>',
+    moderator:  '<span class="badge badge-purple">Moderator</span>',
+    utente:     '<span class="badge badge-gray">Utente</span>',
+    onThinIce:  '<span class="badge badge-orange">Bannato</span>',
+  };
+  return map[role] || `<span class="badge badge-gray">${role}</span>`;
+}
+
+function statusBadge(s) {
+  return s === 'online'
+    ? '<span class="badge badge-green"><span class="badge-dot"></span>Online</span>'
+    : '<span class="badge badge-gray">Offline</span>';
+}
+
+function initials(name, surname) {
+  return ((name||'').charAt(0) + (surname||'').charAt(0)).toUpperCase() || '?';
+}
+
+// ================================================================
+// NAV
+// ================================================================
+function showSection(name) {
+  const valid = ['stats', 'users', 'reports', 'log', 'banned-words'];
+  if (!valid.includes(name)) name = 'stats';
+
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
+
+  document.getElementById(`section-${name}`).classList.remove('hidden');
+  currentSection = name;
+
+  // Salva la sezione nell'hash URL così sopravvive al refresh
+  history.replaceState(null, '', '#' + name);
+
+  const titles = { stats: 'Panoramica', users: 'Gestione Utenti', reports: 'Segnalazioni', log: 'Log Azioni', 'banned-words': 'Parole Bannate' };
+  document.getElementById('topbar-title').textContent = titles[name] || name;
+
+  const navMap = { stats: 0, users: 1, reports: 2, log: 3, 'banned-words': 4 };
+  document.querySelectorAll('.nav-item')[navMap[name]]?.classList.add('active');
+
+  if (name === 'stats')        loadStats();
+  if (name === 'users')        loadUsers(1);
+  if (name === 'reports')      loadReports(1);
+  if (name === 'log')          loadLog(1);
+  if (name === 'banned-words') loadBannedWords();
+}
+
+function refreshCurrent() { showSection(currentSection); }
+
+// ================================================================
+// STATS
+// ================================================================
+async function loadStats() {
+  const { data } = await api('/admin.php?action=stats');
+  if (!data.ok) return;
+  const s = data.stats;
+
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = `
+    ${statCard('Utenti Totali', s.total_users, 'Registrati sulla piattaforma', '#2563eb', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}\n    ${statCard('Online Ora', s.online_users, 'Attivi negli ultimi 40s', '#10b981', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M8 12l3 3 5-5'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}\n    ${statCard('Chiamate Totali', s.total_calls, `${s.calls_today} oggi`, '#8b5cf6', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}\n    ${statCard('Messaggi', s.total_messages, 'In chat durante le chiamate', '#06b6d4', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2306b6d4' stroke-width='2'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}\n    ${statCard('Segnalazioni Aperte', s.open_reports, 'Da esaminare', '#ef4444', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}\n    ${statCard('Parole Bannate', s.banned_words, 'Nel filtro attivo', '#f59e0b', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='4.93' y1='4.93' x2='19.07' y2='19.07'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}\n    ${statCard('Nuovi Utenti (7gg)', s.new_users_7d, 'Iscrizioni recenti', '#10b981', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}\n    ${statCard('Eliminaz. Sched.', s.pending_deletions, 'Account da eliminare', '#ef4444', `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3C/svg%3E" style="width:22px;height:22px;" alt="">`)}
+  `;
+
+  // reports badge
+  if (s.open_reports > 0) {
+    document.getElementById('reports-badge').textContent = s.open_reports;
+    document.getElementById('reports-badge').classList.remove('hidden');
+  }
+
+  // roles
+  const rolesList = document.getElementById('roles-list');
+  rolesList.innerHTML = (s.roles || []).map(r => `
+    <div style="display:flex;align-items:center;gap:8px;">
+      ${roleBadge(r.role_user)}
+      <span style="margin-left:auto;font-weight:700;font-family:'Syne',sans-serif;">${r.cnt}</span>
+    </div>
+  `).join('');
+}
+
+function statCard(label, value, sub, color, icon) {
+  return `
+    <div class="stat-card" style="--c:${color}">
+      <div style="margin-bottom:4px;">${icon}</div>
+      <div class="stat-value">${value ?? '—'}</div>
+      <div class="stat-label">${label}</div>
+      <div class="stat-sub">${sub}</div>
+    </div>`;
+}
+
+// ================================================================
+// USERS
+// ================================================================
+async function loadUsers(page = 1) {
+  usersPage = page;
+  const q    = document.getElementById('user-search').value;
+  const role = document.getElementById('role-filter').value;
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;"><div class="spinner"></div></td></tr>';
+
+  const params = new URLSearchParams({ action: 'users', page, q, role });
+  const { data } = await api('/admin.php?' + params);
+  if (!data.ok) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);">Errore caricamento</td></tr>'; return; }
+
+  if (!data.users.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text2);">Nessun utente trovato.</td></tr>';
+    document.getElementById('users-pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = data.users.map(u => {
+    const isBanned = u.role_user === 'onThinIce';
+    const banBtn = isBanned
+      ? `<button class="btn btn-green btn-sm" onclick="unbanUser(${u.id})" title="Rimuovi ban"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpolyline points='22 4 12 14.01 9 11.01'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt=""> Unban</button>`
+      : `<button class="btn btn-red btn-sm" onclick="openBanModal(${u.id})" title="Banna utente"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='4.93' y1='4.93' x2='19.07' y2='19.07'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt=""> Banna</button>`;
+    return `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="admin-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${initials(u.realName, u.surname)}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;">@${u.username}</div>
+            <div style="font-size:11px;color:var(--text3);">${u.realName} ${u.surname}</div>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--text2);font-size:12px;">${u.email}</td>
+      <td>${roleBadge(u.role_user)}</td>
+      <td>${statusBadge(u.online_status)}</td>
+      <td style="font-size:12px;color:var(--text2);">${fmt(u.created_at)}</td>
+      <td>
+        ${u.open_reports > 0
+          ? `<span class="badge badge-red">${u.open_reports} aperte</span>`
+          : `<span style="color:var(--text3);font-size:12px;">—</span>`}
+      </td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${banBtn}
+          <button class="btn btn-sm" onclick="openUserDrawer(${u.id})" title="Dettagli">Dettagli</button>
+        </div>
+      </td>
+    </tr>
+  `}).join('');
+
+  renderPagination('users-pagination', data.page, data.pages, p => loadUsers(p));
+}
+
+function debounceUserSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadUsers(1), 350);
+}
+
+// ================================================================
+// USER DRAWER
+// ================================================================
+async function openUserDrawer(uid) {
+  activeUserId = uid;
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('user-drawer').classList.add('open');
+
+  // Reset
+  ['drawer-username','drawer-email','dr-name','dr-surname','dr-role','dr-status','dr-created','dr-lastseen']
+    .forEach(id => document.getElementById(id).textContent = '…');
+  document.getElementById('dr-del-row').classList.add('hidden');
+  document.getElementById('drawer-actions').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('dr-mod-log').innerHTML = '';
+  document.getElementById('dr-reports').innerHTML = '';
+
+  const { data } = await api(`/admin.php?action=user_detail&id=${uid}`);
+  if (!data.ok) { toast('Errore caricamento', false); return; }
+
+  const u = data.user;
+  const av = initials(u.realName, u.surname);
+
+  document.getElementById('drawer-avatar').textContent   = av;
+  document.getElementById('drawer-username').textContent = '@' + u.username;
+  document.getElementById('drawer-email').textContent    = u.email;
+  document.getElementById('dr-name').textContent         = u.realName;
+  document.getElementById('dr-surname').textContent      = u.surname;
+  document.getElementById('dr-role').innerHTML           = roleBadge(u.role_user);
+  document.getElementById('dr-status').innerHTML         = statusBadge(u.status_user);
+  document.getElementById('dr-created').textContent      = fmt(u.created_at);
+  document.getElementById('dr-lastseen').textContent     = u.last_seen ? fmt(u.last_seen) : '—';
+
+  if (u.scheduled_deletion_at) {
+    document.getElementById('dr-del-row').classList.remove('hidden');
+    document.getElementById('dr-deletion').textContent = fmt(u.scheduled_deletion_at);
+  }
+
+  // Actions
+  const isBanned  = u.role_user === 'onThinIce';
+  const isAdmin   = currentAdminRole === 'admin';
+  const actions = [];
+
+  if (isBanned) {
+    actions.push(`<button class="btn btn-green btn-sm" onclick="unbanUser(${u.id})"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpolyline points='22 4 12 14.01 9 11.01'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt=""> Rimuovi ban</button>`);
+  } else {
+    actions.push(`<button class="btn btn-red btn-sm" onclick="openBanModal(${u.id})"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='4.93' y1='4.93' x2='19.07' y2='19.07'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt=""> Banna</button>`);
+  }
+  if (isAdmin) {
+    actions.push(`<button class="btn btn-sm" onclick="openRoleModal(${u.id},'${u.role_user}')"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt=""> Ruolo</button>`);
+    actions.push(`<button class="btn btn-red btn-sm" onclick="openDeleteUserModal(${u.id})"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt=""> Elimina</button>`);
+  }
+  document.getElementById('drawer-actions').innerHTML = actions.join('');
+
+  // Mod log
+  const modLog = document.getElementById('dr-mod-log');
+  if (data.mod_log.length) {
+    modLog.innerHTML = data.mod_log.map(m => `
+      <div class="log-item">
+        <div>
+          <div style="font-size:12px;font-weight:600;">${m.action_type}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${m.description_action}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px;">da @${m.admin_username} · ${fmt(m.created_at)}</div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    modLog.innerHTML = '<div style="font-size:12px;color:var(--text3);">Nessuna azione registrata.</div>';
+  }
+
+  // Reports
+  const drRep = document.getElementById('dr-reports');
+  if (data.reports.length) {
+    drRep.innerHTML = data.reports.map(r => `
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;font-size:12px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          ${reportStatusBadge(r.status_report)}
+          <span style="color:var(--text3);">da @${r.reporter_username} · ${fmt(r.created_at)}</span>
+        </div>
+        <div style="color:var(--text2);">${r.reason || '—'}</div>
+      </div>
+    `).join('');
+  } else {
+    drRep.innerHTML = '<div style="font-size:12px;color:var(--text3);">Nessuna segnalazione.</div>';
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('user-drawer').classList.remove('open');
+}
+
+// ================================================================
+// REPORTS
+// ================================================================
+async function loadReports(page = 1) {
+  reportsPage = page;
+  const tbody = document.getElementById('reports-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;"><div class="spinner"></div></td></tr>';
+
+  const params = new URLSearchParams({ action: 'reports', status: reportStatus, page });
+  const { data } = await api('/admin.php?' + params);
+  if (!data.ok) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--red);text-align:center;padding:20px;">Errore</td></tr>'; return; }
+
+  if (!data.reports.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text2);">Nessuna segnalazione.</td></tr>';
+    document.getElementById('reports-pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = data.reports.map(r => `
+    <tr>
+      <td style="color:var(--text3);font-size:12px;">#${r.id}</td>
+      <td><button class="btn btn-sm" onclick="openUserDrawer(${r.reporter_id})" style="font-weight:600;">@${r.reporter_username}</button></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn btn-sm" onclick="openUserDrawer(${r.reported_id})" style="font-weight:600;">@${r.reported_username}</button>
+          ${roleBadge(r.reported_role)}
+        </div>
+      </td>
+      <td style="max-width:200px;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.reason || '—'}</td>
+      <td>${reportStatusBadge(r.status_report)}</td>
+      <td style="font-size:12px;color:var(--text2);">${fmt(r.created_at)}</td>
+      <td>
+        ${r.status_report === 'pending'
+          ? `<button class="btn btn-sm btn-green" onclick="openResolveModal(${r.id})">Risolvi</button>`
+          : '<span style="color:var(--text3);font-size:12px;">—</span>'}
+      </td>
+    </tr>
+  `).join('');
+
+  renderPagination('reports-pagination', data.page, data.pages, p => loadReports(p));
+}
+
+function switchReportTab(status) {
+  reportStatus = status;
+  document.querySelectorAll('#reports-tabs .tab').forEach(t => t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  loadReports(1);
+}
+
+function reportStatusBadge(s) {
+  const map = { pending: 'badge-orange', reviewed: 'badge-blue', resolved: 'badge-green' };
+  const labels = { pending: 'In attesa', reviewed: 'Rivista', resolved: 'Risolta' };
+  return `<span class="badge ${map[s] || 'badge-gray'}">${labels[s] || s}</span>`;
+}
+
+// ================================================================
+// LOG
+// ================================================================
+async function loadLog(page = 1) {
+  logPage = page;
+  const container = document.getElementById('log-list');
+  container.innerHTML = '<div style="text-align:center;padding:30px;"><div class="spinner"></div></div>';
+
+  const params = new URLSearchParams({ action: 'mod_log', page });
+  const { data } = await api('/admin.php?' + params);
+  if (!data.ok) { container.innerHTML = '<div style="color:var(--red);padding:20px;">Errore.</div>'; return; }
+
+  if (!data.log.length) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);">Nessuna azione registrata.</div>';
+    return;
+  }
+
+  const icons = {
+    ban:                `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='4.93' y1='4.93' x2='19.07' y2='19.07'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    unban:              `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpolyline points='22 4 12 14.01 9 11.01'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    warn:               `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    set_role:           `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    delete_user:        `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    force_logout:       `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    resolve_report:     `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2306b6d4' stroke-width='2'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    add_banned_word:    `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+    remove_banned_word: `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`,
+  };
+  const defaultIcon = `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b90a0' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">`;
+  container.innerHTML = data.log.map(item => `
+    <div class="log-item">
+      <div class="log-icon" style="background:var(--surface2);">${icons[item.action_type] || defaultIcon}</div>
+      <div class="log-info">
+        <div class="log-action">${item.description_action}</div>
+        <div class="log-meta">da @${item.admin_username} (${item.admin_role})${item.target_username ? ` → @${item.target_username}` : ''} · ${fmt(item.created_at)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  renderPagination('log-pagination', data.page, data.pages, p => loadLog(p));
+}
+
+// ================================================================
+// BANNED WORDS
+// ================================================================
+async function loadBannedWords() {
+  const container = document.getElementById('words-grid');
+  container.innerHTML = '<div class="spinner"></div>';
+
+  const { data } = await api('/admin.php?action=banned_words');
+  if (!data.ok) { container.innerHTML = '<span style="color:var(--red);">Errore</span>'; return; }
+
+  document.getElementById('word-count').textContent = `${data.words.length} parole`;
+
+  if (!data.words.length) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:13px;">Nessuna parola bannata.</div>';
+    return;
+  }
+
+  container.innerHTML = data.words.map(w => `
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:999px;padding:4px 12px;font-size:13px;">
+      <span>${w.word}</span>
+      <button onclick="removeBannedWord(${w.id})" style="background:none;border:none;cursor:pointer;color:var(--text3);display:flex;align-items:center;padding:0;line-height:1;" title="Rimuovi">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+async function removeBannedWord(wordId) {
+  if (!confirm('Rimuovere questa parola dalla lista?')) return;
+  const { data } = await post('/admin.php', { action: 'remove_banned_word', word_id: wordId });
+  if (data.ok) { toast('Parola rimossa'); loadBannedWords(); }
+  else toast(data.error || 'Errore', false);
+}
+
+function openAddWordModal() { document.getElementById('new-word-input').value = ''; openModal('modal-add-word'); }
+
+async function confirmAddWord() {
+  const word = document.getElementById('new-word-input').value.trim();
+  if (!word) return;
+  const { data } = await post('/admin.php', { action: 'add_banned_word', word });
+  if (data.ok) { toast('Parola aggiunta'); closeModal('modal-add-word'); loadBannedWords(); }
+  else toast(data.error || 'Errore', false);
+}
+
+// ================================================================
+// MODERATION ACTIONS
+// ================================================================
+function openBanModal(uid) {
+  activeUserId = uid;
+  document.getElementById('ban-reason').value = '';
+  openModal('modal-ban');
+}
+async function confirmBan() {
+  const reason = document.getElementById('ban-reason').value.trim();
+  const { data } = await post('/admin.php', { action: 'ban', user_id: activeUserId, reason });
+  if (data.ok) { toast('Utente bannato'); closeModal('modal-ban'); refreshAfterAction(); }
+  else toast(data.error || 'Errore', false);
+}
+
+async function unbanUser(uid) {
+  if (!confirm('Rimuovere il ban da questo utente?')) return;
+  const { data } = await post('/admin.php', { action: 'unban', user_id: uid });
+  if (data.ok) { toast('Ban rimosso'); refreshAfterAction(); }
+  else toast(data.error || 'Errore', false);
+}
+
+function openWarnModal(uid) {
+  activeUserId = uid;
+  document.getElementById('warn-reason').value = '';
+  openModal('modal-warn');
+}
+async function confirmWarn() {
+  const reason = document.getElementById('warn-reason').value.trim();
+  if (!reason) { toast('Inserisci un motivo', false); return; }
+  const { data } = await post('/admin.php', { action: 'warn_user', user_id: activeUserId, reason });
+  if (data.ok) { toast('Avviso inviato'); closeModal('modal-warn'); }
+  else toast(data.error || 'Errore', false);
+}
+
+function openRoleModal(uid, currentRole) {
+  activeUserId = uid;
+  document.getElementById('role-select').value = currentRole;
+  openModal('modal-role');
+}
+async function confirmRole() {
+  const role = document.getElementById('role-select').value;
+  const { data } = await post('/admin.php', { action: 'set_role', user_id: activeUserId, role });
+  if (data.ok) { toast('Ruolo aggiornato'); closeModal('modal-role'); refreshAfterAction(); }
+  else toast(data.error || 'Errore', false);
+}
+
+function openDeleteUserModal(uid) {
+  activeUserId = uid;
+  document.getElementById('delete-user-reason').value = '';
+  openModal('modal-delete-user');
+}
+async function confirmDeleteUser() {
+  const reason = document.getElementById('delete-user-reason').value.trim();
+  const { data } = await post('/admin.php', { action: 'delete_user', user_id: activeUserId, reason });
+  if (data.ok) { toast('Account eliminato'); closeModal('modal-delete-user'); closeDrawer(); loadUsers(usersPage); }
+  else toast(data.error || 'Errore', false);
+}
+
+
+let activeReportId = null;
+function openResolveModal(rid) {
+  activeReportId = rid;
+  openModal('modal-resolve-report');
+}
+async function confirmResolveReport() {
+  const resolution = document.getElementById('resolve-resolution').value;
+  const { data } = await post('/admin.php', { action: 'resolve_report', report_id: activeReportId, resolution });
+  if (data.ok) { toast('Segnalazione aggiornata'); closeModal('modal-resolve-report'); loadReports(reportsPage); }
+  else toast(data.error || 'Errore', false);
+}
+
+function refreshAfterAction() {
+  closeDrawer();
+  if (currentSection === 'users') loadUsers(usersPage);
+  if (currentSection === 'reports') loadReports(reportsPage);
+}
+
+// ================================================================
+// MODAL HELPERS
+// ================================================================
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ================================================================
+// PAGINATION
+// ================================================================
+function renderPagination(containerId, current, total, cb) {
+  const el = document.getElementById(containerId);
+  if (total <= 1) { el.innerHTML = ''; return; }
+
+  let html = '';
+  for (let p = 1; p <= total; p++) {
+    if (p === 1 || p === total || (p >= current - 1 && p <= current + 1)) {
+      html += `<button class="page-btn${p === current ? ' active' : ''}" onclick="(${cb.toString()})(${p})">${p}</button>`;
+    } else if (p === current - 2 || p === current + 2) {
+      html += `<span style="color:var(--text3);">…</span>`;
+    }
+  }
+  html += `<span class="page-info">Pag. ${current} / ${total}</span>`;
+  el.innerHTML = html;
+}
+
+// ================================================================
+// INIT — leggi chi è loggato
+// ================================================================
+async function init() {
+  const { data } = await api('/user.php?action=get');
+  if (!data.ok || !['admin','moderator'].includes(data.user.role_user)) {
+    Object.assign(document.body.style, {
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', flexDirection: 'column', gap: '12px'
+    });
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text2);">
+        <div style="margin-bottom:8px;"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b90a0' stroke-width='1.5'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:48px;height:48px;" alt=""></div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:var(--text);">Accesso negato</div>
+        <div>Devi essere admin o moderator per accedere a questa pagina.</div>
+        <a href="/" style="margin-top:8px;color:var(--accent);">← Torna alla home</a>
+      </div>`;
+    return;
+  }
+
+  const u = data.user;
+  currentAdminRole = u.role_user;
+
+  document.getElementById('sb-avatar').textContent = initials(u.realname || u.realName, u.surname);
+  document.getElementById('sb-name').textContent   = u.username;
+  document.getElementById('sb-role').textContent   = u.role_user;
+
+  // Ripristina la sezione dall'hash URL (sopravvive al refresh)
+  const valid = ['stats', 'users', 'reports', 'log', 'banned-words'];
+  const hash  = location.hash.replace('#', '');
+  showSection(valid.includes(hash) ? hash : 'stats');
+}
+
+init();
+</script>
+</body>
+</html>

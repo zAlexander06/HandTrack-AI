@@ -1,67 +1,38 @@
 <?php
 // ================================================================
 // api/register.php — Registrazione nuovo utente
-// POST { realname, surname, username, email, password_hash }
+// POST { realname, surname, username, email, password }
 // ================================================================
 require_once __DIR__ . '/../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    jsonResponse(['error' => 'Metodo non consentito.'], 405);
+    jsonResponse(['ok' => false, 'error' => 'Metodo non consentito.'], 405);
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    exit();
+$body     = getJsonBody();
+$realname = trim($body['realname']  ?? '');
+$surname  = trim($body['surname']   ?? '');
+$username = trim($body['username']  ?? '');
+$email    = trim($body['email']     ?? '');
+$password = trim($body['password']  ?? '');
+
+if (!$realname || !$surname || !$username || !$email || !$password) {
+    jsonResponse(['ok' => false, 'error' => 'Tutti i campi sono obbligatori.'], 400);
 }
 
-function isUsernameValido(string $username)
-{
-    $blacklist = ["admin", "administrator", "root", "superuser", "moderator", "staff", "support", "helpdesk", "negro", "nigga", "giganigga"];
+// ── Validazione password ──────────────────────────────────────────
+$pwErrors = [];
+if (strlen($password) < 8)                $pwErrors[] = 'almeno 8 caratteri';
+if (!preg_match('/[A-Z]/', $password))    $pwErrors[] = 'almeno una lettera maiuscola';
+if (!preg_match('/[a-z]/', $password))    $pwErrors[] = 'almeno una lettera minuscola';
+if (!preg_match('/[0-9]/', $password))    $pwErrors[] = 'almeno un numero';
+if (!preg_match('/[\W_]/', $password))    $pwErrors[] = 'almeno un carattere speciale';
 
-    $search  = ['0', '1', '3', '4', '5', '7', '8'];
-    $replace = ['o', 'i', 'e', 'a', 's', 't', 'b'];
-
-    $nomeProcessato = str_replace($search, $replace, strtolower($username));
-
-    foreach ($blacklist as $parolaVietata) {
-        if (strpos($nomeProcessato, $parolaVietata) !== false) {
-            return false;
-        }
-    }
-
-    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $username)) return false;
-
-    return true;
+if ($pwErrors) {
+    jsonResponse(['ok' => false, 'error' => 'Password non valida: ' . implode(', ', $pwErrors) . '.'], 422);
 }
 
-$body = getJsonBody();
-$realname = trim($body['realname'] ?? '');
-$surname = trim($body['surname'] ?? '');
-$username = trim($body['username'] ?? '');
-$email = trim($body['email'] ?? '');
-$password_hash = trim($body['password_hash'] ?? '');
-
-if (!$realname || !$surname || !$username || !$email || !$password_hash) {
-    jsonResponse(['error' => 'Tutti i campi sono obbligatori.'], 400);
-}
-
-if (!isUsernameValido($username)) {
-    // log per dire che il nome utente non è valido
-    exit();
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    // se in caso la pagina è separata, metto un log che compare per dire che non è valido
-    exit();
-} else {
-    $dominioEmail = substr(strrchr($email, "@"), 1);
-    if (!checkdnsrr($dominioEmail, "MX")) exit();
-}
-
-$controlloPsw = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{8,}$/';
-if (!preg_match($controlloPsw, $password_hash)) {
-    // log per dire che la password non è conforme alla sicurezza
-    exit();
-}
+$hash = password_hash($password, PASSWORD_BCRYPT);
 
 $db = getDB();
 
@@ -72,22 +43,39 @@ try {
     );
     $stmt->execute([
         ':realname' => $realname,
-        ':surname' => $surname,
+        ':surname'  => $surname,
         ':username' => $username,
-        ':email' => $email,
-        ':hash' => $password_hash,
+        ':email'    => $email,
+        ':hash'     => $hash,
     ]);
 
     $newId = (int)$db->lastInsertId();
-    jsonResponse(['id' => $newId, 'username' => $username, 'email' => $email]);
+
+    // ── Avvia sessione subito dopo la registrazione ──────────────
+    session_regenerate_id(true);
+    $_SESSION['user_id']  = $newId;
+    $_SESSION['role']     = 'utente';
+    $_SESSION['username'] = $username;
+
+    jsonResponse([
+        'ok'   => true,
+        'user' => [
+            'id'       => $newId,
+            'username' => $username,
+            'email'    => $email,
+            'realname' => $realname,
+            'surname'  => $surname,
+            'role'     => 'utente',
+        ],
+    ]);
+
 } catch (PDOException $e) {
-    // Violazione UNIQUE
     if ($e->getCode() === '23000') {
         $msg = $e->getMessage();
-        if (stripos($msg, 'username') !== false) jsonResponse(['error' => 'Username già in uso.'], 409);
-        if (stripos($msg, 'email') !== false) jsonResponse(['error' => 'Email già registrata.'], 409);
-        if (stripos($msg, 'realName') !== false) jsonResponse(['error' => 'Nome già in uso.'], 409);
-        jsonResponse(['error' => 'Username o email già in uso.'], 409);
+        if (stripos($msg, 'username') !== false) jsonResponse(['ok' => false, 'error' => 'Username già in uso.'], 409);
+        if (stripos($msg, 'email')    !== false) jsonResponse(['ok' => false, 'error' => 'Email già registrata.'], 409);
+        if (stripos($msg, 'realName') !== false) jsonResponse(['ok' => false, 'error' => 'Nome già in uso.'], 409);
+        jsonResponse(['ok' => false, 'error' => 'Username o email già in uso.'], 409);
     }
-    jsonResponse(['error' => 'Errore durante la registrazione: ' . $e->getMessage()], 500);
+    jsonResponse(['ok' => false, 'error' => 'Errore durante la registrazione.'], 500);
 }

@@ -153,3 +153,32 @@ CREATE TABLE IF NOT EXISTS `banned_word` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_word` (`word`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+ALTER TABLE users ADD COLUMN last_seen DATETIME DEFAULT NULL;
+
+
+-- ================================================================
+-- HandTrackLIS — Migration: eliminazione account schedulata
+-- Esegui questo script UNA SOLA VOLTA in phpMyAdmin (o CLI).
+-- ================================================================
+
+-- 1. Aggiungi la colonna alla tabella users
+ALTER TABLE `users`
+  ADD COLUMN `scheduled_deletion_at` DATETIME DEFAULT NULL
+    COMMENT 'Se valorizzata, l''account verrà eliminato alla data indicata (dopo 7 gg dalla richiesta).'
+  AFTER `created_at`;
+
+-- 2. View opzionale: utenti da eliminare (utile per monitoraggio e cron)
+CREATE OR REPLACE VIEW `v_accounts_pending_deletion` AS
+  SELECT
+    id,
+    realName,
+    surname,
+    username,
+    email,
+    scheduled_deletion_at,
+    TIMESTAMPDIFF(HOUR, NOW(), scheduled_deletion_at) AS hours_remaining
+  FROM `users`
+  WHERE `scheduled_deletion_at` IS NOT NULL
+    AND `scheduled_deletion_at` <= NOW() + INTERVAL 7 DAY;

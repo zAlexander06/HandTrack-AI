@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandTrackLIS — Permessi</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+
+<body>
+
+
+<!-- PAGE LOADER -->
+<div id="page-loader" class="loader-detail-mode">
+  <!-- Simple: barra sottile -->
+  <div class="loader-bar"></div>
+  <!-- Detailed: logo + dots -->
+  <div class="loader-detail">
+    <div class="loader-logo-wrap">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt="">
+    </div>
+    <div class="loader-label">HandTrackLIS</div>
+    <div class="loader-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Salvato</span></div>
+
+<!-- INCOMING CALL NOTIFICATION -->
+<div id="incoming-call-overlay" class="incoming-call-overlay" style="display:none;">
+  <div class="incoming-call-card">
+    <div class="incoming-call-pulse"></div>
+    <div class="incoming-call-header">
+      <div class="incoming-call-icon-wrap">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="" style="width:22px;height:22px;filter:brightness(0) invert(1);">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px;" data-i18n="call.incomingLabel">Chiamata in Entrata</div>
+        <div id="incoming-caller-name" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text);">…</div>
+        <div id="incoming-caller-sub" style="font-size:12px;color:var(--text3);margin-top:1px;" data-i18n="call.directCall">HandTrackLIS · Chiamata Diretta</div>
+      </div>
+      <div id="incoming-caller-avatar" class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0;margin-left:auto;">?</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn w-full" id="btn-decline-call" style="justify-content:center;background:rgba(220,38,38,0.1);color:var(--red);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:10px;font-weight:600;gap:6px;" onclick="declineIncomingCall()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.5'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.decline">Rifiuta</span>
+      </button>
+      <button class="btn btn-success w-full" id="btn-accept-call" style="justify-content:center;padding:10px;font-weight:600;border-radius:10px;gap:6px;" onclick="acceptIncomingCall()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.accept">Accetta</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ CALL INVITE OVERLAY ================================================================ -->
+<div id="call-invite-overlay" class="incoming-call-overlay" style="display:none;top:140px;">
+  <div class="incoming-call-card">
+    <div class="incoming-call-pulse"></div>
+    <div class="incoming-call-header">
+      <div class="incoming-call-icon-wrap" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="" style="width:22px;height:22px;">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px;" data-i18n="call.inviteLabel">Invito Chiamata</div>
+        <div id="invite-caller-name" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text);">…</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:1px;" data-i18n="call.invitesSub">ti invita a partecipare</div>
+      </div>
+      <div id="invite-caller-avatar" class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0;margin-left:auto;">?</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn w-full" style="justify-content:center;background:rgba(220,38,38,0.1);color:var(--red);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:10px;font-weight:600;gap:6px;" onclick="declineCallInvite()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.5'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.decline">Rifiuta</span>
+      </button>
+      <button class="btn btn-primary w-full" style="justify-content:center;padding:10px;font-weight:600;border-radius:10px;gap:6px;" onclick="acceptCallInvite()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.join">Partecipa</span>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="page active" id="page-permissions">
+  <nav class="topnav">
+    <a class="logo">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+  </nav>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px;background:radial-gradient(ellipse 60% 60% at 50% 0%,rgba(124,58,237,0.06) 0%,transparent 70%);">
+    <div style="width:100%;max-width:560px;">
+      <div style="text-align:center;margin-bottom:32px;">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.5'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:52px;height:52px;margin:0 auto 12px;display:block;">
+        <h2 style="font-family:'Syne',sans-serif;font-size:26px;font-weight:700;margin-bottom:6px;" data-i18n="perm.title">Permessi Necessari</h2>
+        <p class="text-muted text-sm" data-i18n="perm.sub">Fotocamera e tracciamento mano sono necessari per usare HandTrackLIS. Il microfono è facoltativo.</p>
+      </div>
+      <div class="card">
+
+        <div id="perms-grid" class="flex flex-col gap-3 mb-4">
+
+          <!-- FOTOCAMERA — obbligatoria -->
+          <div class="perm-card" id="perm-camera">
+            <div class="perm-icon">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3Cpath d='M15 2l-3 4-3-4'/%3E%3C/svg%3E" alt="">
+            </div>
+            <div class="perm-info">
+              <div class="perm-title" data-i18n="perm.camTitle">Accesso Fotocamera</div>
+              <div class="perm-desc" data-i18n="perm.camDesc">Necessario per videochiamate e rilevamento gesti della mano.</div>
+            </div>
+            <button class="toggle" id="btn-camera" onclick="grantPerm('camera')" title="Abilita fotocamera" aria-label="Abilita fotocamera"></button>
+          </div>
+
+          <!-- MICROFONO — facoltativo -->
+          <div class="perm-card" id="perm-mic">
+            <div class="perm-icon">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3C/svg%3E" alt="">
+            </div>
+            <div class="perm-info">
+              <div class="perm-title" data-i18n="perm.micTitle">
+                <span data-i18n="waiting.micAccess">Accesso Microfono</span>
+                <span style="margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(37,99,235,0.12);color:var(--accent);font-weight:600;vertical-align:middle;">Facoltativo</span>
+              </div>
+              <div class="perm-desc" data-i18n="perm.micDesc">Abilita l'audio durante le videochiamate. Modificabile in qualsiasi momento dalle impostazioni.</div>
+            </div>
+            <button class="toggle" id="btn-mic" onclick="grantPerm('mic')" title="Abilita microfono" aria-label="Abilita microfono"></button>
+          </div>
+
+          <!-- TRACCIAMENTO MANO — obbligatorio -->
+          <div class="perm-card" id="perm-hand">
+            <div class="perm-icon">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt="">
+            </div>
+            <div class="perm-info">
+              <div class="perm-title" data-i18n="perm.handTitle">Tracciamento Mano</div>
+              <div class="perm-desc" data-i18n="perm.handDesc">Abilita il riconoscimento gesti LIS e la generazione di sottotitoli in tempo reale.</div>
+            </div>
+            <button class="toggle" id="btn-hand" onclick="grantPerm('hand')" title="Abilita tracciamento" aria-label="Abilita tracciamento"></button>
+          </div>
+
+        </div>
+
+        <div class="info-box mb-4">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">
+          <span data-i18n="perm.privacy">Tutta l'elaborazione video avviene localmente nel browser. Nessun dato gestuale viene inviato ai nostri server.</span>
+        </div>
+        <button class="btn btn-primary w-full" style="justify-content:center;padding:12px;" id="continue-btn" onclick="goTo('page-dashboard')" disabled data-i18n="perm.continueBtn">Continua alla Dashboard</button>
+        <p id="perm-warning" style="text-align:center;font-size:12px;color:var(--red);margin-top:8px;" data-i18n="perm.warning">Fotocamera e tracciamento mano sono obbligatori per continuare.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ PAGE 4: DASHBOARD ================================================================ -->
+
+<script src="router.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

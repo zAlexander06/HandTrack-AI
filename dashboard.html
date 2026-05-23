@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HandTrackLIS — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+
+<body>
+
+
+<!-- PAGE LOADER -->
+<div id="page-loader" class="loader-detail-mode">
+  <!-- Simple: barra sottile -->
+  <div class="loader-bar"></div>
+  <!-- Detailed: logo + dots -->
+  <div class="loader-detail">
+    <div class="loader-logo-wrap">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt="">
+    </div>
+    <div class="loader-label">HandTrackLIS</div>
+    <div class="loader-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Salvato</span></div>
+
+<!-- INCOMING CALL NOTIFICATION -->
+<div id="incoming-call-overlay" class="incoming-call-overlay" style="display:none;">
+  <div class="incoming-call-card">
+    <div class="incoming-call-pulse"></div>
+    <div class="incoming-call-header">
+      <div class="incoming-call-icon-wrap">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="" style="width:22px;height:22px;filter:brightness(0) invert(1);">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px;" data-i18n="call.incomingLabel">Chiamata in Entrata</div>
+        <div id="incoming-caller-name" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text);">…</div>
+        <div id="incoming-caller-sub" style="font-size:12px;color:var(--text3);margin-top:1px;" data-i18n="call.directCall">HandTrackLIS · Chiamata Diretta</div>
+      </div>
+      <div id="incoming-caller-avatar" class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0;margin-left:auto;">?</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn w-full" id="btn-decline-call" style="justify-content:center;background:rgba(220,38,38,0.1);color:var(--red);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:10px;font-weight:600;gap:6px;" onclick="declineIncomingCall()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.5'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.decline">Rifiuta</span>
+      </button>
+      <button class="btn btn-success w-full" id="btn-accept-call" style="justify-content:center;padding:10px;font-weight:600;border-radius:10px;gap:6px;" onclick="acceptIncomingCall()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.accept">Accetta</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ CALL INVITE OVERLAY ================================================================ -->
+<div id="call-invite-overlay" class="incoming-call-overlay" style="display:none;top:140px;">
+  <div class="incoming-call-card">
+    <div class="incoming-call-pulse"></div>
+    <div class="incoming-call-header">
+      <div class="incoming-call-icon-wrap" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="" style="width:22px;height:22px;">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px;" data-i18n="call.inviteLabel">Invito Chiamata</div>
+        <div id="invite-caller-name" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text);">…</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:1px;" data-i18n="call.invitesSub">ti invita a partecipare</div>
+      </div>
+      <div id="invite-caller-avatar" class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0;margin-left:auto;">?</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn w-full" style="justify-content:center;background:rgba(220,38,38,0.1);color:var(--red);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:10px;font-weight:600;gap:6px;" onclick="declineCallInvite()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.5'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.decline">Rifiuta</span>
+      </button>
+      <button class="btn btn-primary w-full" style="justify-content:center;padding:10px;font-weight:600;border-radius:10px;gap:6px;" onclick="acceptCallInvite()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt=""><span data-i18n="call.join">Partecipa</span>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="page active" id="page-dashboard">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link active-nav">Contatti</button>
+      <button class="nav-link" onclick="goTo('page-recents')" data-i18n="nav.recents">Chiamate Recenti</button>
+    </div>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div>
+      <div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div>
+    </div>
+  </nav>
+  <div class="sidebar-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-label" data-i18n="sidebar.navLabel">Navigazione</div>
+      <button class="sidebar-link active" onclick="goTo('page-dashboard')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="">Contatti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-recents')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="">Chiamate Recenti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-add-contact')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="">Aggiungi Contatto
+      </button>
+      <div class="sidebar-section-label" style="margin-top:12px;" data-i18n="sidebar.accountLabel">Account</div>
+      <button class="sidebar-link" onclick="goTo('page-profile')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" alt="">Profilo
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-settings')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" alt="">Impostazioni
+      </button>
+            <button class="sidebar-link" onclick="goTo('page-guide-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">Guida
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-privacy-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" alt="">Privacy Policy
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="sidebar-link" style="color:var(--red);" onclick="logoutUser()">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" alt="">Esci
+      </button>
+    </aside>
+    <div class="main-content">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div><h1 class="section-title" data-i18n="dash.title">Contatti</h1><p class="section-sub" data-i18n="dash.sub">La tua rete HandTrackLIS</p></div>
+        <button class="btn btn-primary" onclick="goTo('page-add-contact')">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5'%3E%3Cline x1='12' y1='5' x2='12' y2='19'/%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt="">Aggiungi Contatto
+        </button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label" data-i18n="dash.statTotal">Contatti Totali</div><div class="stat-value">12</div></div>
+        <div class="stat-card"><div class="stat-label" data-i18n="dash.statOnline">Online Ora</div><div class="stat-value" style="color:var(--green);">4</div><div class="stat-sub" data-i18n="dash.statAvail">Disponibili per chiamate</div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div class="search-wrap" style="flex:1;">
+            <img class="s-icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E" alt="">
+            <input class="input" placeholder="Cerca contatti per nome o email…" oninput="filterContacts(this.value)"/>
+          </div>
+          <select class="input" style="width:160px;" onchange="filterContactsByStatus(this.value)"><option value="all" data-i18n="dash.filterAll">Tutti i Contatti</option><option value="online" data-i18n="dash.filterOnline">Online</option><option value="offline" data-i18n="dash.filterOffline">Offline</option></select>
+        </div>
+        <div id="contacts-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ PAGE 5: RECENT CALLS ================================================================ -->
+<div class="page" id="page-recents">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goTo('page-dashboard')">Contatti</button>
+      <button class="nav-link active-nav">Chiamate Recenti</button>
+    </div>
+    <div class="nav-right"><div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div><div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div></div>
+  </nav>
+  <div class="sidebar-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navigazione</div>
+      <button class="sidebar-link" onclick="goTo('page-dashboard')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="">Contatti
+      </button>
+      <button class="sidebar-link active" onclick="goTo('page-recents')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="">Chiamate Recenti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-add-contact')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="">Aggiungi Contatto
+      </button>
+      <div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+      <button class="sidebar-link" onclick="goTo('page-profile')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" alt="">Profilo
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-settings')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" alt="">Impostazioni
+      </button>
+            <button class="sidebar-link" onclick="goTo('page-guide-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">Guida
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-privacy-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" alt="">Privacy Policy
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="sidebar-link" style="color:var(--red);" onclick="logoutUser()">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" alt="">Esci
+      </button>
+    </aside>
+    <div class="main-content">
+      <h1 class="section-title" data-i18n="recents.title">Chiamate Recenti</h1>
+      <p class="section-sub" style="margin-bottom:24px;" data-i18n="recents.sub">Cronologia chiamate con trascrizioni sottotitoli</p>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h3 style="font-weight:600;" data-i18n="recents.history">Cronologia</h3>
+          <button class="btn btn-outline text-sm" data-i18n="recents.export">Esporta Trascrizioni</button>
+        </div>
+        <div class="flex flex-col gap-2" id="recents-list">
+          <div style="text-align:center;padding:32px;color:var(--text3);">
+            <div class="text-sm" data-i18n="recents.loadingCalls">Caricamento chiamate…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ PAGE 6: ADD CONTACT ================================================================ -->
+<div class="page" id="page-add-contact">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goTo('page-dashboard')">Contatti</button>
+      <button class="nav-link" onclick="goTo('page-recents')" data-i18n="nav.recents">Chiamate Recenti</button>
+    </div>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div>
+      <div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div>
+    </div>
+  </nav>
+  <div class="sidebar-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navigazione</div>
+      <button class="sidebar-link" onclick="goTo('page-dashboard')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="">Contatti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-recents')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="">Chiamate Recenti
+      </button>
+      <button class="sidebar-link active" onclick="goTo('page-add-contact')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="">Aggiungi Contatto
+      </button>
+      <div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+      <button class="sidebar-link" onclick="goTo('page-profile')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" alt="">Profilo
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-settings')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" alt="">Impostazioni
+      </button>
+            <button class="sidebar-link" onclick="goTo('page-guide-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">Guida
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-privacy-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" alt="">Privacy Policy
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="sidebar-link" style="color:var(--red);" onclick="logoutUser()">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" alt="">Esci
+      </button>
+    </aside>
+    <div class="main-content">
+      <h1 class="section-title" data-i18n="addContact.title">Aggiungi Contatto</h1>
+      <p class="section-sub" data-i18n="addContact.sub">Cerca utenti per email o nome utente</p>
+      <div class="grid-2" style="gap:32px;align-items:start;">
+        <div>
+          <div class="card mb-4">
+            <h3 style="font-weight:600;margin-bottom:16px;" data-i18n="addContact.searchTitle">Cerca Utenti</h3>
+            <div class="input-group mb-3">
+              <label class="input-label" data-i18n="addContact.searchLabel">Email o Nome Utente</label>
+              <div class="search-wrap">
+                <img class="s-icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E" alt="">
+                <input class="input" placeholder="Cerca per email o @nomeutente…" id="contact-search" oninput="filterSuggestedContacts()"/>
+              </div>
+            </div>
+            <button class="btn btn-primary w-full" style="justify-content:center;" onclick="searchUsers()" data-i18n="addContact.searchBtn">Cerca</button>
+          </div>
+          <div class="card">
+            <h3 style="font-weight:600;margin-bottom:4px;" data-i18n="addContact.results">Risultati</h3>
+            <p class="text-xs text-muted" style="margin-bottom:16px;" data-i18n="addContact.resultsSub">Utenti HandTrackLIS trovati</p>
+            <div id="search-results">
+              <div style="text-align:center;padding:24px;color:var(--text3);">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E" style="width:36px;height:36px;opacity:0.25;display:block;margin:0 auto 8px;">
+                <div class="text-sm" data-i18n="addContact.placeholder">Digita per cercare utenti</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-4">
+          <!-- RICHIESTE IN ENTRATA -->
+          <div class="card" id="incoming-requests-card">
+            <h3 style="font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M20 8v6M17 11h6'/%3E%3C/svg%3E" style="width:16px;height:16px;">
+              <span data-i18n="addContact.incomingRequests">Richieste in Entrata</span>
+              <span id="incoming-badge" style="display:none;background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;line-height:1.6;">0</span>
+            </h3>
+            <p class="text-xs text-muted" style="margin-bottom:12px;" data-i18n="addContact.incomingRequestsSub">Utenti che vogliono aggiungerti come contatto</p>
+            <div class="flex flex-col gap-2" id="incoming-requests-list">
+              <div style="text-align:center;padding:20px;color:var(--text3);" class="text-sm" data-i18n="common.loading">Caricamento…</div>
+            </div>
+          </div>
+          <!-- CONTATTI SUGGERITI -->
+          <div class="card">
+            <h3 style="font-weight:600;margin-bottom:4px;" data-i18n="addContact.suggested">Contatti Suggeriti</h3>
+            <p class="text-xs text-muted" style="margin-bottom:16px;" data-i18n="addContact.suggestedSub">Persone che potresti conoscere</p>
+            <div class="flex flex-col gap-2" id="suggested-list">
+              <div style="text-align:center;padding:24px;color:var(--text3);" class="text-sm" data-i18n="common.loading">Caricamento…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ PAGE 7: WAITING ROOM ================================================================ -->
+<div class="page" id="page-waiting">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div>
+      <div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div>
+    </div>
+  </nav>
+  <div style="flex:1;display:flex;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;gap:32px;">
+      <h2 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:700;" data-i18n="waiting.preview">Anteprima</h2>
+      <div class="webcam-box" style="width:360px;height:270px;position:relative;overflow:hidden;">
+        <div class="webcam-placeholder">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3Cpath d='M15 2l-3 4-3-4'/%3E%3C/svg%3E" alt="">
+          <div data-i18n="waiting.camActive">Fotocamera attiva</div>
+        </div>
+        <!-- Avatar mostrato quando la cam è spenta -->
+        <div id="waiting-cam-off-avatar" style="display:none;position:absolute;inset:0;background:var(--bg2);display:none;align-items:center;justify-content:center;">
+          <div id="waiting-cam-off-ini" class="avatar nav-user-initials" style="width:72px;height:72px;font-size:26px;"></div>
+        </div>
+        <video id="video-waiting-preview" autoplay muted playsinline
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;"></video>
+        <div class="webcam-label call-local-name" data-i18n="call.you">Tu</div>
+        <div style="position:absolute;top:12px;right:12px;"><div class="badge badge-green badge-dot" style="font-size:11px;" data-i18n="call.trackingOn">Tracciamento ON</div></div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="call-btn call-btn-gray" id="btn-waiting-cam" onclick="toggleWaitingCam()"><img id="icon-waiting-cam-on" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3C/svg%3E" alt="cam" style="width:20px;height:20px;"><img id="icon-waiting-cam-off" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f87171' stroke-width='2'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3Cline x1='1' y1='1' x2='23' y2='23'/%3E%3C/svg%3E" alt="cam-off" style="width:20px;height:20px;display:none;"></button>
+        <button class="call-btn call-btn-gray" id="btn-waiting-mic" onclick="toggleWaitingMic()"><img id="icon-waiting-mic-on" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3C/svg%3E" alt="mic" style="width:20px;height:20px;"><img id="icon-waiting-mic-off" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f87171' stroke-width='2'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3Cline x1='1' y1='1' x2='23' y2='23'/%3E%3C/svg%3E" alt="mic-off" style="width:20px;height:20px;display:none;"></button>
+        <button class="call-btn call-btn-red" onclick="cancelOutgoingCall()"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6.72 6.72l1.06-1.06a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'/%3E%3C/svg%3E" alt="end"></button>
+      </div>
+    </div>
+    <!-- Right panel: who you're calling -->
+    <div style="width:300px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;">
+      <div id="waiting-callee-avatar" class="avatar" style="width:72px;height:72px;font-size:26px;background:linear-gradient(135deg,#059669,#0d9488);">?</div>
+      <div style="text-align:center;">
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;" id="waiting-callee-name">…</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:4px;" data-i18n="waiting.calling">Chiamata in corso…</div>
+      </div>
+      <div class="waiting-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <div style="font-size:12px;color:var(--text3);text-align:center;" data-i18n="waiting.awaitingAnswer">In attesa che risponda</div>
+    </div>
+  </div>
+</div><!-- /page-waiting -->
+
+<!-- ================================================================ PAGE 8: ACTIVE CALL ================================================================ -->
+<div class="page" id="page-call" style="background:#0d1117;flex-direction:column;height:100vh;overflow:hidden;">
+
+  <!-- TOP BAR -->
+  <div class="call-topbar">
+    <div class="call-topbar-left">
+      <div class="logo-icon" style="width:28px;height:28px;border-radius:7px;flex-shrink:0;">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt="" style="width:16px;height:16px;">
+      </div>
+      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#fff;">HandTrackLIS</span>
+    </div>
+    <div class="call-topbar-center">
+      <div class="call-status-dot"></div>
+      <span id="call-status-label" style="font-size:13px;color:#94a3b8;" data-i18n="call.inCallWith">In chiamata con</span>
+      <span id="call-topbar-name" style="font-size:13px;color:#e2e8f0;font-weight:600;margin-left:4px;">…</span>
+    </div>
+    <div class="call-topbar-right">
+      <span id="call-timer" style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#64748b;letter-spacing:0.08em;background:rgba(255,255,255,0.06);padding:4px 12px;border-radius:20px;">00:00</span>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div style="flex:1;display:flex;overflow:hidden;min-height:0;">
+
+    <!-- LEFT — call stage -->
+    <div class="call-stage" style="position:relative;">
+
+      <!-- Remote video grid — popolato dinamicamente da JS per ogni peer -->
+      <div id="remote-videos-grid" class="remote-videos-grid" data-peers="0"></div>
+
+      <!-- Remote user card (fallback generico — usato solo quando il grid è vuoto) -->
+      <div class="call-remote-card" id="call-remote-card" style="display:none;position:absolute;inset:0;z-index:1;">
+        <div id="call-remote-avatar" class="avatar" style="width:96px;height:96px;font-size:34px;box-shadow:0 0 0 4px rgba(255,255,255,0.08);">?</div>
+        <div id="call-remote-name" style="font-size:18px;font-weight:700;color:#e2e8f0;margin-top:16px;font-family:'Syne',sans-serif;">…</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+          <div class="call-status-dot"></div>
+          <span style="font-size:12px;color:#4ade80;" data-i18n="nav.connected">Connesso</span>
+        </div>
+      </div>
+
+      <!-- Self tile (draggable PiP) -->
+      <div id="call-self-tile" class="call-self-tile" data-corner="bottom-right">
+        <!-- Fallback avatar quando la cam è spenta -->
+        <div id="self-cam-off" class="call-self-avatar-wrap" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+          <div class="avatar nav-user-initials" style="width:44px;height:44px;font-size:15px;">MR</div>
+        </div>
+        <!-- Video locale -->
+        <video id="video-local" autoplay playsinline muted
+          style="width:100%;height:100%;object-fit:cover;display:none;"></video>
+        <!-- Label -->
+        <div class="webcam-label call-local-name" style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;padding:2px 6px;background:rgba(0,0,0,0.55);color:#e2e8f0;" data-i18n="call.you">Tu</div>
+        <!-- Pulsante entra nella griglia -->
+        <button id="btn-self-enter-grid" class="self-tile-grid-btn" title="Entra nella griglia" onclick="selfTileEnterGrid()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
+        <!-- Handle drag (icona) — visibile solo al hover -->
+        <div class="self-tile-drag-handle" title="Trascina per spostare">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="9" cy="5" r="1" fill="white"/><circle cx="15" cy="5" r="1" fill="white"/><circle cx="9" cy="12" r="1" fill="white"/><circle cx="15" cy="12" r="1" fill="white"/><circle cx="9" cy="19" r="1" fill="white"/><circle cx="15" cy="19" r="1" fill="white"/></svg>
+        </div>
+      </div>
+
+      <!-- BOTTOM CONTROLS BAR -->
+      <div class="call-controls-bar">
+
+        <!-- Mic toggle -->
+        <div class="call-ctrl-wrap">
+          <button class="call-ctrl-btn" id="btn-call-mic" onclick="toggleCallControl('mic')" title="Microfono">
+            <img id="icon-call-mic-on" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3C/svg%3E" alt="" style="width:20px;height:20px;">
+            <img id="icon-call-mic-off" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3Cline x1='1' y1='1' x2='23' y2='23'/%3E%3C/svg%3E" alt="" style="width:20px;height:20px;display:none;">
+          </button>
+          <span class="call-ctrl-label" id="label-call-mic" data-i18n="call.mic">Microfono</span>
+        </div>
+
+        <!-- Camera toggle -->
+        <div class="call-ctrl-wrap">
+          <button class="call-ctrl-btn" id="btn-cam" onclick="toggleCallControl('cam')" title="Fotocamera">
+            <img id="icon-cam-on" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3C/svg%3E" alt="" style="width:20px;height:20px;">
+            <img id="icon-cam-off" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='2' y='6' width='20' height='14' rx='2'/%3E%3Ccircle cx='12' cy='13' r='3'/%3E%3Cline x1='1' y1='1' x2='23' y2='23'/%3E%3C/svg%3E" alt="" style="width:20px;height:20px;display:none;">
+          </button>
+          <span class="call-ctrl-label" id="label-cam" data-i18n="call.camera">Fotocamera</span>
+        </div>
+
+        <!-- End call -->
+        <div class="call-ctrl-wrap">
+          <button class="call-ctrl-btn call-ctrl-end" onclick="endActiveCall()" title="Termina chiamata">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6.91-6.87 19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z'/%3E%3Cline x1='1' y1='1' x2='23' y2='23'/%3E%3C/svg%3E" alt="" style="width:20px;height:20px;">
+          </button>
+          <span class="call-ctrl-label" style="color:#f87171;" data-i18n="call.end">Termina</span>
+        </div>
+
+        <!-- Invite -->
+        <div class="call-ctrl-wrap">
+          <button class="call-ctrl-btn" onclick="openInviteModal()" title="Invita qualcuno" style="background:rgba(37,99,235,0.25);border-color:rgba(37,99,235,0.4);">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="" style="width:20px;height:20px;">
+          </button>
+          <span class="call-ctrl-label" style="color:#60a5fa;" data-i18n="call.invite">Invita</span>
+        </div>
+
+      </div><!-- /call-controls-bar -->
+    </div><!-- /call-stage -->
+
+    <!-- RIGHT — chat panel -->
+    <div class="call-chat-panel">
+
+      <!-- Chat header -->
+      <div class="call-chat-header">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">
+        <span style="font-weight:600;font-size:14px;">Chat Testo</span>
+        <span id="chat-peer-name" style="margin-left:auto;font-size:12px;color:var(--text3);">…</span>
+      </div>
+
+      <!-- Messages list -->
+      <div id="chat-messages-list" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div id="chat-msgs" style="display:flex;flex-direction:column;gap:10px;min-height:100%;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:32px 16px;color:var(--text3);">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E" style="width:36px;height:36px;opacity:0.2;">
+            <div id="chat-empty-msg" style="font-size:13px;text-align:center;" data-i18n="call.chatEmpty">Nessun messaggio ancora.<br>Inizia la conversazione!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="call-chat-input-wrap">
+        <input class="input call-chat-input" id="chat-input" placeholder="Scrivi un messaggio…" data-i18n-placeholder="call.chatPlaceholder"
+               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"/>
+        <button class="call-chat-send-btn" onclick="sendChatMessage()" title="Invia">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cline x1='22' y1='2' x2='11' y2='13'/%3E%3Cpolygon points='22 2 15 22 11 13 2 9 22 2'/%3E%3C/svg%3E" style="width:15px;height:15px;" alt="">
+        </button>
+      </div>
+
+    </div><!-- /call-chat-panel -->
+  </div>
+</div>
+
+<!-- ================================================================ PAGE 9: SETTINGS ================================================================ -->
+<div class="page" id="page-settings">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goTo('page-dashboard')">Contatti</button>
+      <button class="nav-link" onclick="goTo('page-recents')" data-i18n="nav.recents">Chiamate Recenti</button>
+    </div>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div>
+      <div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div>
+    </div>
+  </nav>
+  <div class="sidebar-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navigazione</div>
+      <button class="sidebar-link" onclick="goTo('page-dashboard')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="">Contatti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-recents')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="">Chiamate Recenti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-add-contact')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="">Aggiungi Contatto
+      </button>
+      <div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+      <button class="sidebar-link" onclick="goTo('page-profile')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" alt="">Profilo
+      </button>
+      <button class="sidebar-link  active" onclick="goTo('page-settings')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" alt="">Impostazioni
+      </button>
+            <button class="sidebar-link" onclick="goTo('page-guide-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">Guida
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-privacy-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" alt="">Privacy Policy
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="sidebar-link" style="color:var(--red);" onclick="logoutUser()">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" alt="">Esci
+      </button>
+    </aside>
+    <div class="main-content">
+      <h1 class="section-title" data-i18n="settings.title">Impostazioni</h1>
+      <p class="section-sub" data-i18n="settings.sub">Personalizza la tua esperienza HandTrackLIS</p>
+      <div class="grid-2" style="gap:24px;align-items:start;">
+        <div>
+          <div class="card mb-4">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='14' rx='2'/%3E%3Cpath d='M7 8h10M7 12h6M3 21l4-4h14'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="settings.subsTitle">Sottotitoli e Accessibilità</span>
+            </h3>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.subSize">Dimensione Sottotitoli</div><div class="settings-desc" data-i18n="settings.subSizeDesc">Adatta la dimensione del testo per una migliore leggibilità</div></div>
+              <select class="input" style="width:140px;" id="subtitle-size">
+                <option data-i18n="settings.subSizeSmall">Piccolo (12px)</option>
+                <option data-i18n="settings.subSizeMedium" selected>Medio (16px)</option>
+                <option data-i18n="settings.subSizeBig">Grande (20px)</option>
+                <option data-i18n="settings.subSizeReallyBig">Molto Grande (24px)</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.subPos">Posizione Sottotitoli</div><div class="settings-desc" data-i18n="settings.subPosDesc">Scegli dove vuoi vedere i sottotitoli durante la chiamata</div></div>
+              <select class="input" style="width:140px;">
+                <option data-i18n="settings.subPosSidePanel">Pannello laterale</option>
+                <option data-i18n="settings.subPosOverlapping" selected>Sovrapposto</option>
+                <option data-i18n="settings.subPosBottom">In basso</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.highContrast">Alto Contrasto Sottotitoli</div><div class="settings-desc" data-i18n="settings.highContrastDesc">Rende il testo più facile da leggere aggiungendo uno sfondo scuro ai sottotitoli</div></div>
+              <button class="toggle" id="toggle-contrast" onclick="toggleBtn(this)"></button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.confidence">Mostra Confidence Score</div><div class="settings-desc" data-i18n="settings.confidenceDesc">Mostra quanto è sicuro il sistema di aver riconosciuto correttamente il gesto</div></div>
+              <button class="toggle" id="toggle-confidence" onclick="toggleBtn(this)"></button>
+            </div>
+          </div>
+          <div class="card">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="settings.langTitle">Lingua e Localizzazione</span>
+            </h3>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.langUI">Lingua Interfaccia</div><div class="settings-desc" data-i18n="settings.langUIDesc">La lingua usata per pulsanti, menu e messaggi dell'app</div></div>
+              <select class="input" style="width:140px;">
+                <option selected>Italiano</option>
+                <option>English</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.langSub">Lingua Sottotitoli LIS</div><div class="settings-desc" data-i18n="settings.langSubDesc">In che lingua vuoi leggere i sottotitoli generati durante la chiamata</div></div>
+              <select class="input" style="width:140px;">
+                <option selected>Italiano</option>
+                <option>English</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb-4">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="settings.appearTitle">Aspetto</span>
+            </h3>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.darkMode">Modalità Scura</div><div class="settings-desc" data-i18n="settings.darkModeDesc">Passa a uno sfondo scuro, più riposante per gli occhi in ambienti poco illuminati</div></div>
+              <button class="toggle" id="toggle-dark" onclick="toggleDarkMode()"></button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.animations">Animazioni Interfaccia</div><div class="settings-desc" data-i18n="settings.animationsDesc">Abilita o disabilita le animazioni di apertura e chiusura delle schermate</div></div>
+              <button class="toggle on" id="toggle-anim" onclick="toggleBtn(this)"></button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.statusBadge">Mostra Badge Status</div><div class="settings-desc" data-i18n="settings.statusBadgeDesc">Mostra agli altri utenti quando sei online</div></div>
+              <button class="toggle on" id="toggle-status" onclick="toggleBtn(this)"></button>
+            </div>
+          </div>
+          <div class="card mb-4">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cline x1='16' y1='13' x2='8' y2='13'/%3E%3Cline x1='16' y1='17' x2='8' y2='17'/%3E%3Cpolyline points='10 9 9 9 8 9'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="settings.transcriptTitle">Trascrizioni e Dati</span>
+            </h3>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.autoSave">Salvataggio Automatico</div><div class="settings-desc" data-i18n="settings.autoSaveDesc">Al termine di ogni chiamata, il testo dei sottotitoli viene salvato automaticamente sul tuo dispositivo</div></div>
+              <button class="toggle on" id="toggle-save" onclick="toggleBtn(this)"></button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label" data-i18n="settings.exportFmt">Formato Export</div><div class="settings-desc" data-i18n="settings.exportFmtDesc">Scegli il formato del file quando scarichi i sottotitoli di una chiamata</div></div>
+              <select class="input" style="width:140px;">
+                <option selected>.txt</option>
+                <option>.pdf</option>
+                <option>.docx</option>
+              </select>
+            </div>
+          </div>
+          <div class="card mb-4">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="settings.micTitle">Microfono e Dispositivi</span>
+            </h3>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label" data-i18n="settings.micEnabled">Abilita Microfono nelle Chiamate</div>
+                <div class="settings-desc" data-i18n="settings.micEnabledDesc">Se attivo, l'app userà il microfono durante le chiamate. Puoi comunque silenziarlo in qualsiasi momento anche mentre sei in chiamata.</div>
+              </div>
+              <button class="toggle on" id="toggle-mic-enabled" onclick="onToggleMicEnabled(this)"></button>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-primary btn-lg w-full" style="justify-content:center;" onclick="saveSettings()" data-i18n="settings.save">Salva Impostazioni</button>
+            <button class="btn btn-outline btn-lg" onclick="goTo('page-dashboard')" data-i18n="settings.cancel">Annulla</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ PAGE 10: HOW IT WORKS ================================================================ -->
+<div class="page" id="page-profile">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goTo('page-dashboard')">Contatti</button>
+      <button class="nav-link" onclick="goTo('page-recents')" data-i18n="nav.recents">Chiamate Recenti</button>
+    </div>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div>
+      <div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div>
+    </div>
+  </nav>
+  <div class="sidebar-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navigazione</div>
+      <button class="sidebar-link" onclick="goTo('page-dashboard')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="">Contatti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-recents')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="">Chiamate Recenti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-add-contact')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="">Aggiungi Contatto
+      </button>
+      <div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+      <button class="sidebar-link active" onclick="goTo('page-profile')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" alt="">Profilo
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-settings')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" alt="">Impostazioni
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-guide-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">Guida
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-privacy-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" alt="">Privacy Policy
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="sidebar-link" style="color:var(--red);" onclick="logoutUser()">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" alt="">Esci
+      </button>
+    </aside>
+    <div class="main-content">
+      <h1 class="section-title" data-i18n="profile.title">Profilo</h1>
+      <p class="section-sub" data-i18n="profile.sub">Gestisci le tue informazioni personali e la sicurezza dell'account</p>
+
+      <div class="grid-2" style="gap:24px;align-items:start;">
+        <!-- LEFT COLUMN -->
+        <div>
+          <!-- Avatar card -->
+          <div class="card mb-4" style="text-align:center;padding:32px 24px;">
+            <div class="avatar xl" id="profile-avatar" style="background:linear-gradient(135deg,#2563eb,#7c3aed);margin:0 auto 16px;width:72px;height:72px;font-size:26px;font-weight:700;">MR</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;" id="profile-fullname">Mario Rossi</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:4px;" id="profile-username">@mariorossi</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px;" id="profile-email-display"></div>
+            <div style="margin-top:16px;">
+              <div class="badge badge-green badge-dot" style="display:inline-flex;" data-i18n="nav.connected">Connesso</div>
+            </div>
+          </div>
+
+          <!-- Dati anagrafici -->
+          <div class="card">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="profile.personalInfo">Informazioni Personali</span>
+            </h3>
+            <div class="flex flex-col gap-3">
+              <div class="grid-2" style="gap:12px;">
+                <div class="input-group">
+                  <label class="input-label" data-i18n="form.firstName">Nome</label>
+                  <input class="input" type="text" id="profile-realname" placeholder="Mario"/>
+                </div>
+                <div class="input-group">
+                  <label class="input-label" data-i18n="form.lastName">Cognome</label>
+                  <input class="input" type="text" id="profile-surname" placeholder="Rossi"/>
+                </div>
+              </div>
+              <div class="input-group">
+                <label class="input-label" data-i18n="form.username">Username</label>
+                <input class="input" type="text" id="profile-username-input" placeholder="mariorossi"/>
+              </div>
+            </div>
+            <div id="profile-info-error" style="display:none;font-size:12px;color:var(--red);margin-top:12px;padding:8px 12px;background:rgba(220,38,38,0.07);border-radius:8px;"></div>
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary w-full" style="justify-content:center;padding:12px;" onclick="saveProfileInfo()">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'/%3E%3Cpolyline points='17 21 17 13 7 13 7 21'/%3E%3Cpolyline points='7 3 7 8 15 8'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt="">
+                <span data-i18n="profile.saveInfo">Salva Modifiche</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+          <!-- Cambio password -->
+          <div class="card mb-4">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="profile.changePass">Cambia Password</span>
+            </h3>
+            <div class="flex flex-col gap-3">
+              <div class="input-group">
+                <label class="input-label" data-i18n="form.currentPassword">Password Attuale</label>
+                <input class="input" type="password" id="profile-pw-old" placeholder="••••••••"/>
+              </div>
+              <div class="input-group">
+                <label class="input-label" data-i18n="form.newPassword">Nuova Password</label>
+                <input class="input" type="password" id="profile-pw-new" placeholder="Minimo 8 caratteri"/>
+              </div>
+              <div class="input-group">
+                <label class="input-label" data-i18n="form.confirmNewPassword">Conferma Nuova Password</label>
+                <input class="input" type="password" id="profile-pw-conf" placeholder="••••••••"/>
+              </div>
+            </div>
+            <div id="profile-pw-error" style="display:none;font-size:12px;color:var(--red);margin-top:12px;padding:8px 12px;background:rgba(220,38,38,0.07);border-radius:8px;"></div>
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary w-full" style="justify-content:center;padding:12px;" onclick="saveProfilePassword()">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt="">
+                <span data-i18n="profile.savePass">Aggiorna Password</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Zona pericolosa: logout + elimina account -->
+          <div class="card" style="border-color:rgba(220,38,38,0.25);">
+            <h3 style="font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px;color:var(--red);">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="profile.dangerZone">Zona Account</span>
+            </h3>
+            <p style="font-size:13px;color:var(--text2);margin-bottom:16px;" data-i18n="profile.logoutDesc">Termina la sessione corrente su questo dispositivo.</p>
+            <button class="btn w-full" style="justify-content:center;padding:12px;background:rgba(220,38,38,0.08);color:var(--red);border:1px solid rgba(220,38,38,0.25);border-radius:10px;" onclick="logoutUser()">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt="">
+              <span data-i18n="profile.logout">Esci dall'Account</span>
+            </button>
+
+            <div style="height:1px;background:rgba(220,38,38,0.15);margin:16px 0;"></div>
+
+            <p style="font-size:13px;color:var(--text2);margin-bottom:12px;" data-i18n="profile.deleteDesc">Elimina definitivamente il tuo account e tutti i dati associati. <strong style="color:var(--text);">L'eliminazione avverrà dopo 7 giorni</strong> dalla richiesta — puoi annullare entro quel termine accedendo di nuovo.</p>
+            <div id="delete-account-pending-banner" style="display:none;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.3);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E" style="width:15px;height:15px;flex-shrink:0;" alt="">
+                <span style="font-size:13px;font-weight:600;color:var(--red);" data-i18n="profile.deletionScheduled">Eliminazione programmata</span>
+              </div>
+              <p id="delete-account-pending-text" style="font-size:12px;color:var(--text2);margin:0 0 10px 0;"></p>
+              <button class="btn w-full" style="justify-content:center;padding:10px;background:rgba(37,99,235,0.1);color:var(--accent);border:1px solid rgba(37,99,235,0.25);border-radius:9px;font-size:13px;" onclick="cancelDeleteAccount()">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='15' y1='9' x2='9' y2='15'/%3E%3Cline x1='9' y1='9' x2='15' y2='15'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt="">
+                <span data-i18n="profile.cancelDeletion">Annulla eliminazione account</span>
+              </button>
+            </div>
+            <button id="btn-delete-account" class="btn w-full" style="justify-content:center;padding:12px;background:rgba(220,38,38,0.12);color:var(--red);border:1px solid rgba(220,38,38,0.35);border-radius:10px;font-weight:600;" onclick="openDeleteAccountModal()">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3Cpath d='M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt="">
+              <span data-i18n="profile.deleteAccount">Elimina Account</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ PAGE: FORGOT PASSWORD ================================================================ -->
+<div class="page" id="page-guide-logged">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goTo('page-dashboard')">Contatti</button>
+      <button class="nav-link" onclick="goTo('page-recents')" data-i18n="nav.recents">Chiamate Recenti</button>
+    </div>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div>
+      <div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div>
+    </div>
+  </nav>
+  <div class="sidebar-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navigazione</div>
+      <button class="sidebar-link" onclick="goTo('page-dashboard')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="">Contatti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-recents')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="">Chiamate Recenti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-add-contact')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="">Aggiungi Contatto
+      </button>
+      <div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+      <button class="sidebar-link" onclick="goTo('page-profile')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" alt="">Profilo
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-settings')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" alt="">Impostazioni
+      </button>
+      <button class="sidebar-link active" onclick="goTo('page-guide-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">Guida
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-privacy-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" alt="">Privacy Policy
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="sidebar-link" style="color:var(--red);" onclick="logoutUser()">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" alt="">Esci
+      </button>
+    </aside>
+    <div class="main-content" style="overflow-y:auto;">
+
+      <!-- HEADER -->
+      <div style="padding:40px 0 32px;text-align:center;background:radial-gradient(ellipse 70% 50% at 50% -5%,rgba(37,99,235,0.07) 0%,transparent 70%);margin:-24px -24px 0 -24px;">
+        <div class="hero-tag" style="margin-bottom:16px;">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" style="width:14px;height:14px;">
+          Guida alla Piattaforma
+        </div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:32px;margin-bottom:12px;">Come usare HandTrackLIS</h1>
+        <p style="font-size:15px;color:var(--text2);max-width:540px;margin:0 auto;">Tutto quello che puoi fare una volta effettuato l'accesso: contatti, chiamate, impostazioni e profilo.</p>
+      </div>
+
+      <div style="max-width:820px;margin:40px auto;display:flex;flex-direction:column;gap:28px;">
+
+        <!-- ── DASHBOARD / CONTATTI ── -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:rgba(37,99,235,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" style="width:20px;height:20px;" alt="">
+            </div>
+            <div>
+              <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Dashboard — Contatti</h2>
+              <div style="font-size:12px;color:var(--text3);">Schermata principale dopo il login</div>
+            </div>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">La <strong>Dashboard</strong> è il punto di partenza: mostra la tua lista contatti con lo stato di presenza in tempo reale (online / offline). Da qui puoi avviare subito una videochiamata cliccando il pulsante di chiamata accanto a un contatto, oppure aprire la scheda di quel contatto per vedere le ultime chiamate condivise.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Stato di presenza</div>
+              <div style="font-size:12px;color:var(--text2);">Pallino verde = online e raggiungibile per una chiamata in questo momento.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Chiamata rapida</div>
+              <div style="font-size:12px;color:var(--text2);">Il tasto telefono accanto al contatto avvia direttamente la sala d'attesa pre-chiamata.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AGGIUNGI CONTATTO ── -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:rgba(5,150,105,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" style="width:20px;height:20px;" alt="">
+            </div>
+            <div>
+              <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Aggiungi Contatto</h2>
+              <div style="font-size:12px;color:var(--text3);">Cerca e connettiti con altri utenti</div>
+            </div>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">Cerca altri utenti HandTrackLIS per <strong>email o nome utente</strong> (@nomeutente). Invia una richiesta di contatto: l'altro utente riceverà una notifica e potrà accettarla o rifiutarla. Una volta accettata, entrambi vi comparite nelle rispettive liste contatti.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Richieste in entrata</div>
+              <div style="font-size:12px;color:var(--text2);">Visualizzi e gestisci le richieste che hai ricevuto con Accetta / Rifiuta.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Richieste in attesa</div>
+              <div style="font-size:12px;color:var(--text2);">Le tue richieste inviate restano in stato "In attesa" finché l'altro non risponde.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Suggeriti</div>
+              <div style="font-size:12px;color:var(--text2);">HandTrackLIS può suggerire utenti in base ai contatti comuni già presenti nella rete.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CHIAMATE ── -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:rgba(124,58,237,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" style="width:20px;height:20px;" alt="">
+            </div>
+            <div>
+              <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Chiamate Video con LIS</h2>
+              <div style="font-size:12px;color:var(--text3);">Sala d'attesa → Chiamata → Trascrizione</div>
+            </div>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:16px;">Il flusso di una chiamata si svolge in tre momenti:</p>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+            <div style="display:flex;gap:14px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
+              <div>
+                <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Sala d'attesa (pre-call)</div>
+                <div style="font-size:13px;color:var(--text2);line-height:1.6;">Prima di entrare in chiamata compare un'anteprima della tua webcam. Puoi attivare o disattivare fotocamera e microfono, verificare che il tracciamento mano sia attivo, e poi confermare la connessione. La pagina mostra anche lo stato dell'interlocutore (in attesa / in chiamata).</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
+              <div>
+                <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Videochiamata in diretta</div>
+                <div style="font-size:13px;color:var(--text2);line-height:1.6;">L'interfaccia di chiamata mostra il video dell'interlocutore in grande e il tuo in piccolo (picture-in-picture). Il pannello sottotitoli, sempre visibile, aggiorna in tempo reale il testo generato dal riconoscimento LIS. Puoi silenziare il microfono, disattivare la fotocamera o mettere in pausa il tracciamento senza interrompere la chiamata. In alto trovi un timer con la durata della sessione.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
+              <div>
+                <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Fine chiamata e trascrizione</div>
+                <div style="font-size:13px;color:var(--text2);line-height:1.6;">Al termine vengono mostrate le statistiche della sessione (durata, numero di gesti riconosciuti, precisione media) e la trascrizione completa. Puoi scaricarla in formato TXT o PDF direttamente dalla schermata di riepilogo.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--accent);">Chiamate in entrata</div>
+              <div style="font-size:12px;color:var(--text2);">Se un contatto ti chiama, compare un overlay con nome e avatar. Puoi accettare o rifiutare senza lasciare la pagina corrente.</div>
+            </div>
+            <div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--accent);">Inviti a chiamate di gruppo</div>
+              <div style="font-size:12px;color:var(--text2);">Puoi ricevere un invito a partecipare a una sessione già in corso avviata da un altro contatto.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CHIAMATE RECENTI ── -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d97706' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E" style="width:20px;height:20px;" alt="">
+            </div>
+            <div>
+              <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Chiamate Recenti</h2>
+              <div style="font-size:12px;color:var(--text3);">Storico sessioni e trascrizioni salvate</div>
+            </div>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">La sezione <strong>Chiamate Recenti</strong> mostra lo storico di tutte le sessioni ordinate dalla più recente. Per ogni chiamata vedi il nome del contatto, la data, la durata e lo stato (completata, persa, rifiutata). Cliccando su una voce puoi rileggere la trascrizione e scaricarla nuovamente oppure richiamare subito il contatto.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Filtro per contatto</div>
+              <div style="font-size:12px;color:var(--text2);">Puoi filtrare la lista per nome contatto o per data per trovare rapidamente una sessione passata.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Re-download trascrizione</div>
+              <div style="font-size:12px;color:var(--text2);">Le trascrizioni restano disponibili per 12 mesi (modificabile nelle Impostazioni).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── IMPOSTAZIONI ── -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:rgba(100,116,139,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" style="width:20px;height:20px;" alt="">
+            </div>
+            <div>
+              <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Impostazioni</h2>
+              <div style="font-size:12px;color:var(--text3);">Personalizza l'esperienza di utilizzo</div>
+            </div>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">Le Impostazioni raccolgono tutte le preferenze dell'app, organizzate per categoria:</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Aspetto</div>
+              <div style="font-size:12px;color:var(--text2);">Scegli se usare lo sfondo chiaro, scuro o quello del tuo sistema. La scelta viene ricordata anche dopo aver riaperto l'app.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Sottotitoli</div>
+              <div style="font-size:12px;color:var(--text2);">Regola la dimensione del testo, la posizione sullo schermo, il colore dello sfondo e la trasparenza del riquadro dei sottotitoli.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Lingua</div>
+              <div style="font-size:12px;color:var(--text2);">Scegli la lingua dell'app (Italiano o Inglese) e quella in cui vuoi leggere i sottotitoli.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Notifiche</div>
+              <div style="font-size:12px;color:var(--text2);">Scegli se ricevere un suono quando arriva una chiamata, una richiesta di contatto o un messaggio dell'app.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Dispositivi</div>
+              <div style="font-size:12px;color:var(--text2);">Se hai più di una webcam o microfono collegati, puoi scegliere quale usare nelle chiamate.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Esportazione</div>
+              <div style="font-size:12px;color:var(--text2);">Scegli il formato preferito per scaricare i sottotitoli (TXT o PDF) e per quanto tempo tenerli disponibili (3, 6 o 12 mesi).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PROFILO ── -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div style="width:40px;height:40px;border-radius:12px;background:rgba(37,99,235,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" style="width:20px;height:20px;" alt="">
+            </div>
+            <div>
+              <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Profilo</h2>
+              <div style="font-size:12px;color:var(--text3);">Le tue informazioni personali e l'account</div>
+            </div>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">Nel <strong>Profilo</strong> puoi modificare le informazioni che gli altri utenti vedono quando ricevono una tua richiesta di contatto o una tua chiamata:</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Nome e username</div>
+              <div style="font-size:12px;color:var(--text2);">Il nome visualizzato nelle chiamate e lo @username usato per essere cercato da altri utenti.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Avatar</div>
+              <div style="font-size:12px;color:var(--text2);">Carica un'immagine del profilo o usa le iniziali generate automaticamente dall'app.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Email e password</div>
+              <div style="font-size:12px;color:var(--text2);">Modifica l'indirizzo email o cambia la password di accesso in qualsiasi momento.</div>
+            </div>
+            <div style="background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.18);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--red);">Elimina account</div>
+              <div style="font-size:12px;color:var(--text2);">Puoi eliminare definitivamente il tuo account e tutti i dati associati (vedi Privacy Policy per i dettagli).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── NAVIGAZIONE RAPIDA ── -->
+        <div class="card" style="background:var(--bg2);">
+          <h3 style="font-weight:700;font-size:15px;margin-bottom:16px;">Navigazione rapida dalla barra laterale</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);">
+              <span style="font-weight:600;color:var(--text);min-width:140px;">Contatti</span>Dashboard principale con lista contatti e stato online.
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);">
+              <span style="font-weight:600;color:var(--text);min-width:140px;">Chiamate Recenti</span>Storico sessioni, trascrizioni e richiamata rapida.
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);">
+              <span style="font-weight:600;color:var(--text);min-width:140px;">Aggiungi Contatto</span>Cerca utenti per email o @username e gestisci le richieste.
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);">
+              <span style="font-weight:600;color:var(--text);min-width:140px;">Profilo</span>Nome, avatar, email, password e cancellazione account.
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);">
+              <span style="font-weight:600;color:var(--text);min-width:140px;">Impostazioni</span>Tema, sottotitoli, lingua, notifiche, dispositivi ed esportazione.
+            </div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);">
+              <span style="font-weight:600;color:var(--text);min-width:140px;">Guida</span>Questa pagina.</div>
+            <div style="height:1px;background:var(--border);"></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);">
+              <span style="font-weight:600;color:var(--text);min-width:140px;">Privacy Policy</span>Informativa sul trattamento dei dati personali.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ JAVASCRIPT ================================================================ -->
+
+<style>
+/* ── Dark-mode icon fix ─────────────────────────────────────── */
+/* SVG img tag icons inherit no color — use filter in dark mode */
+body.dark .sicon,
+body.dark .settings-row img,
+body.dark .sidebar-link img,
+body.dark .card h3 img[style*="18px"] {
+  filter: brightness(0) invert(1) opacity(0.75);
+}
+/* accent-colored icons (blue stroke hardcoded in src) keep their color */
+body.dark .card h3 img[src*="2563eb"],
+body.dark .settings-row img[src*="2563eb"],
+body.dark .hero-feat img,
+body.dark .feat-icon {
+  filter: none;
+}
+/* Toggle thumb visibility in dark mode */
+body.dark .toggle { border-color: rgba(255,255,255,0.2); }
+body.dark .toggle.on { border-color: var(--accent); }
+
+/* ── Contact three-dot menu ──────────────────────────────────── */
+.contact-menu-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  transition: background 0.15s, color 0.15s;
+}
+.contact-menu-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.contact-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  padding: 5px;
+  z-index: 500;
+  min-width: 160px;
+  animation: dropdownIn 0.12s ease;
+}
+@keyframes dropdownIn {
+  from { opacity:0; transform:translateY(-6px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.contact-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  transition: background 0.12s;
+}
+.contact-dropdown-item:hover {
+  background: var(--bg2);
+}
+.contact-dropdown-danger {
+  color: var(--red) !important;
+}
+.contact-dropdown-danger:hover {
+  background: rgba(220,38,38,0.07);
+}
+
+/* ── Settings select IDs for JS targeting */
+#sel-subtitle-size,
+#sel-subtitle-pos,
+#sel-lang-ui,
+#sel-lang-sub,
+#sel-export-fmt { width: 140px; }
+</style>
+<div class="page" id="page-privacy-logged">
+  <nav class="topnav">
+    <a class="logo" onclick="goTo('page-dashboard')">
+      <div class="logo-icon"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt=""></div>
+      HandTrackLIS
+    </a>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goTo('page-dashboard')">Contatti</button>
+      <button class="nav-link" onclick="goTo('page-recents')" data-i18n="nav.recents">Chiamate Recenti</button>
+    </div>
+    <div class="nav-right">
+      <div class="badge badge-green badge-dot" data-i18n="nav.connected">Connesso</div>
+      <div class="avatar nav-user-initials" onclick="goTo('page-profile')" style="cursor:pointer;">MR</div>
+    </div>
+  </nav>
+  <div class="sidebar-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navigazione</div>
+      <button class="sidebar-link" onclick="goTo('page-dashboard')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="">Contatti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-recents')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.9 19.79 19.79 0 0 1 1.61 3.27 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6'/%3E%3C/svg%3E" alt="">Chiamate Recenti
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-add-contact')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='22' y1='11' x2='16' y2='11'/%3E%3C/svg%3E" alt="">Aggiungi Contatto
+      </button>
+      <div class="sidebar-section-label" style="margin-top:12px;">Account</div>
+      <button class="sidebar-link" onclick="goTo('page-profile')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E" alt="">Profilo
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-settings')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/%3E%3C/svg%3E" alt="">Impostazioni
+      </button>
+      <button class="sidebar-link" onclick="goTo('page-guide-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" alt="">Guida
+      </button>
+      <button class="sidebar-link active" onclick="goTo('page-privacy-logged')">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" alt="">Privacy Policy
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="sidebar-link" style="color:var(--red);" onclick="logoutUser()">
+        <img class="sicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'/%3E%3C/svg%3E" alt="">Esci
+      </button>
+    </aside>
+    <div class="main-content" style="overflow-y:auto;">
+
+      <!-- Hero section -->
+      <div style="background:radial-gradient(ellipse 70% 50% at 50% -5%,rgba(37,99,235,0.07) 0%,transparent 70%);padding:40px 0 32px;text-align:center;margin:-24px -24px 32px;border-bottom:1px solid var(--border);">
+        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" style="width:24px;height:24px;" alt="">
+        </div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:32px;margin-bottom:10px;">Privacy Policy</h1>
+        <p style="font-size:15px;color:var(--text2);max-width:560px;margin:0 auto;line-height:1.6;">Come HandTrackLIS raccoglie, utilizza e protegge i tuoi dati personali, in conformità con il GDPR (UE) 2016/679.</p>
+        <p style="font-size:12px;color:var(--text3);margin-top:12px;">Ultimo aggiornamento: maggio 2026</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px;">
+
+        <!-- 1 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(37,99,235,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">1. Titolare del Trattamento</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;">Il titolare del trattamento dei dati personali è il team di sviluppo di <strong>HandTrackLIS</strong>, progetto scolastico realizzato nell'ambito dell'istruzione tecnica superiore. Per qualsiasi richiesta relativa alla privacy puoi contattarci all'indirizzo email indicato nella sezione Contatti del sito.</p>
+        </div>
+
+        <!-- 2 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(37,99,235,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cline x1='16' y1='13' x2='8' y2='13'/%3E%3Cline x1='16' y1='17' x2='8' y2='17'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">2. Dati Raccolti</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:12px;">HandTrackLIS raccoglie esclusivamente i dati necessari al funzionamento del servizio:</p>
+          <ul style="font-size:14px;color:var(--text2);line-height:1.9;padding-left:20px;">
+            <li><strong>Dati di registrazione:</strong> nome, cognome, username, indirizzo email e password. La password viene trasmessa su connessione cifrata (HTTPS) e conservata sul server esclusivamente in forma hashata con <strong>bcrypt</strong>.</li>
+            <li><strong>Dati di utilizzo:</strong> cronologia delle chiamate (data, ora, durata, stato), elenco dei tuoi contatti e richieste di contatto pendenti, messaggi di testo inviati durante le chiamate.</li>
+            <li><strong>Dati relazionali:</strong> le connessioni tra gli utenti della piattaforma vengono analizzate per generare suggerimenti di contatti ("persone che potresti conoscere"). Nessun dato viene ceduto a terzi per questa funzione.</li>
+            <li><strong>Dati biometrici temporanei:</strong> durante le videochiamate il flusso video viene elaborato localmente nel browser per il riconoscimento dei gesti LIS tramite MediaPipe. Nessun dato video o gestuale viene inviato o registrato sui nostri server.</li>
+            <li><strong>Dati tecnici:</strong> indirizzo IP e timestamp di ogni richiesta al server, esclusivamente per scopi di sicurezza, diagnostica e prevenzione degli abusi.</li>
+          </ul>
+        </div>
+
+        <!-- 3 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(5,150,105,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">3. Finalità del Trattamento</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:12px;">I dati vengono trattati esclusivamente per le seguenti finalità:</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Erogazione del servizio</div>
+              <div style="font-size:12px;color:var(--text2);">Permettere videochiamate con riconoscimento LIS in tempo reale.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Gestione account</div>
+              <div style="font-size:12px;color:var(--text2);">Autenticazione, gestione profilo, contatti e richieste di contatto.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Sicurezza</div>
+              <div style="font-size:12px;color:var(--text2);">Prevenzione di accessi non autorizzati, sessioni scadute e abusi.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Suggerimento contatti</div>
+              <div style="font-size:12px;color:var(--text2);">Analisi delle connessioni tra utenti per proporre "persone che potresti conoscere".</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Trascrizioni</div>
+              <div style="font-size:12px;color:var(--text2);">Esportazione locale delle trascrizioni a richiesta dell'utente (il file viene scaricato sul tuo dispositivo).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d97706' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">4. Condivisione dei Dati</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;">HandTrackLIS <strong>non vende, cede o condivide</strong> i tuoi dati personali con terze parti a scopo commerciale. I dati vengono condivisi esclusivamente con altri utenti della piattaforma che hai esplicitamente aggiunto come contatti, limitatamente alle informazioni necessarie per le comunicazioni (nome, username, avatar). Nessun dato viene condiviso con reti pubblicitarie o broker di dati.</p>
+        </div>
+
+        <!-- 5 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">5. Conservazione dei Dati</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;">I dati dell'account (profilo, contatti, cronologia chiamate e messaggi) vengono conservati per tutta la durata dell'iscrizione al servizio. I messaggi di testo scambiati durante le chiamate vengono conservati sul server finché l'account è attivo. Le trascrizioni LIS non vengono salvate sui nostri server: vengono generate localmente nel browser e, se richiesto, scaricate direttamente sul tuo dispositivo. In caso di richiesta di cancellazione dell'account, il sistema avvia un periodo di grazia di <strong>7 giorni</strong> durante i quali è possibile annullare l'operazione; trascorso tale termine, l'account e tutti i dati associati vengono eliminati definitivamente dal server. I dati tecnici (log IP) vengono conservati per il tempo strettamente necessario a fini di sicurezza.</p>
+        </div>
+
+        <!-- 6 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">6. I Tuoi Diritti (GDPR)</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:12px;">In qualità di interessato hai il diritto di:</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Accesso</div>
+              <div style="font-size:12px;color:var(--text2);">Ottenere copia dei tuoi dati personali trattati.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Rettifica</div>
+              <div style="font-size:12px;color:var(--text2);">Correggere dati inesatti o incompleti.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Cancellazione</div>
+              <div style="font-size:12px;color:var(--text2);">Richiedere l'eliminazione dei tuoi dati ("diritto all'oblio").</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Portabilità</div>
+              <div style="font-size:12px;color:var(--text2);">Ricevere i tuoi dati in formato strutturato e leggibile.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Opposizione</div>
+              <div style="font-size:12px;color:var(--text2);">Opporti al trattamento in qualsiasi momento.</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Reclamo</div>
+              <div style="font-size:12px;color:var(--text2);">Presentare reclamo al Garante per la Protezione dei Dati Personali.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(5,150,105,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2'%3E%3Crect x='2' y='3' width='20' height='14' rx='2'/%3E%3Cpath d='M8 21h8M12 17v4'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">7. Cookie e Archiviazione Locale</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;">HandTrackLIS non utilizza cookie. Usa esclusivamente lo storage nativo del browser, con funzioni distinte: <strong>sessionStorage</strong> per i dati di sessione (utente autenticato, pagina corrente, tab attivo) che vengono cancellati automaticamente alla chiusura della scheda; <strong>localStorage</strong> solo per le impostazioni personali dell'interfaccia (tema, dimensione sottotitoli, lingua), che persistono tra le sessioni ma non contengono dati personali o credenziali. Non utilizziamo cookie di terze parti, cookie pubblicitari o strumenti di tracciamento analytics. Puoi cancellare questi dati in qualsiasi momento dalle impostazioni del tuo browser.</p>
+        </div>
+
+        <!-- 8 -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(37,99,235,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z'/%3E%3Cpolyline points='22,6 12,13 2,6'/%3E%3C/svg%3E" style="width:18px;height:18px;" alt="">
+            </div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">8. Contatti</h2>
+          </div>
+          <p style="font-size:14px;color:var(--text2);line-height:1.7;">Per esercitare i tuoi diritti o per qualsiasi domanda relativa al trattamento dei tuoi dati personali, puoi contattarci all'indirizzo <a href="mailto:info@handtracklist.it" style="color:var(--accent);">info@handtracklist.it</a>. Risponderemo entro 30 giorni dalla ricezione della tua richiesta.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ PAGE: GUIDA (solo utenti loggati) ================================================================ -->
+<!-- ================================================================ MODAL: ELIMINA ACCOUNT ================================================================ -->
+<div id="delete-account-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--bg);border:1px solid rgba(220,38,38,0.3);border-radius:18px;padding:32px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.3);position:relative;">
+    <!-- Icona -->
+    <div style="width:52px;height:52px;border-radius:14px;background:rgba(220,38,38,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3Cpath d='M10 11v6M14 11v6'/%3E%3Cpath d='M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/%3E%3C/svg%3E" style="width:26px;height:26px;" alt="">
+    </div>
+    <h2 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;text-align:center;margin-bottom:8px;color:var(--text);" data-i18n="modal.deleteTitle">Elimina il tuo account?</h2>
+    <p style="font-size:13px;color:var(--text2);text-align:center;line-height:1.6;margin-bottom:20px;" data-i18n="modal.deleteDesc">L'eliminazione verrà <strong style="color:var(--text);">pianificata tra 7 giorni</strong>. Entro tale data potrai annullarla accedendo nuovamente al tuo profilo. Dopo la scadenza, tutti i tuoi dati (contatti, chiamate, trascrizioni) verranno rimossi definitivamente.</p>
+    <!-- Casella conferma -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--text2);">
+        <input type="checkbox" id="delete-account-confirm-check" style="margin-top:2px;accent-color:var(--red);width:15px;height:15px;flex-shrink:0;">
+        <span data-i18n="modal.deleteConfirmCheck">Ho capito che questa operazione è <strong style="color:var(--text);">irreversibile</strong> e che dopo 7 giorni il mio account verrà eliminato definitivamente.</span>
+      </label>
+    </div>
+    <div id="delete-account-modal-error" style="display:none;font-size:12px;color:var(--red);margin-bottom:12px;padding:8px 12px;background:rgba(220,38,38,0.07);border-radius:8px;"></div>
+    <!-- Bottoni -->
+    <div style="display:flex;gap:10px;">
+      <button class="btn w-full" style="justify-content:center;padding:12px;border-radius:10px;" onclick="closeDeleteAccountModal()" data-i18n="modal.cancel">Annulla</button>
+      <button id="btn-confirm-delete-account" class="btn w-full" style="justify-content:center;padding:12px;background:rgba(220,38,38,0.12);color:var(--red);border:1px solid rgba(220,38,38,0.35);border-radius:10px;font-weight:600;" onclick="confirmDeleteAccount()">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/%3E%3C/svg%3E" style="width:13px;height:13px;" alt="">
+        <span data-i18n="modal.confirmDelete">Conferma eliminazione</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+
+<script src="router.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
