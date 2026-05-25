@@ -65,7 +65,7 @@
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px;" data-i18n="call.inviteLabel">Invito Chiamata</div>
         <div id="invite-caller-name" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text);">…</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:1px;" data-i18n="call.invitesSub">ti invita a partecipare</div>
+        <div style="font-size:14px;color:var(--text3);margin-top:1px;" data-i18n="call.invitesSub">ti invita a partecipare</div>
       </div>
       <div id="invite-caller-avatar" class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0;margin-left:auto;">?</div>
     </div>
@@ -198,7 +198,6 @@
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
           <h3 style="font-weight:600;" data-i18n="recents.history">Cronologia</h3>
-          <button class="btn btn-outline text-sm" data-i18n="recents.export">Esporta Trascrizioni</button>
         </div>
         <div class="flex flex-col gap-2" id="recents-list">
           <div style="text-align:center;padding:32px;color:var(--text3);">
@@ -350,12 +349,12 @@
       <div id="waiting-callee-avatar" class="avatar" style="width:72px;height:72px;font-size:26px;background:linear-gradient(135deg,#059669,#0d9488);">?</div>
       <div style="text-align:center;">
         <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;" id="waiting-callee-name">…</div>
-        <div style="font-size:13px;color:var(--text3);margin-top:4px;" data-i18n="waiting.calling">Chiamata in corso…</div>
+        <div style="font-size:15px;color:var(--text3);margin-top:4px;" data-i18n="waiting.calling">Chiamata in corso…</div>
       </div>
       <div class="waiting-dots">
         <span></span><span></span><span></span>
       </div>
-      <div style="font-size:12px;color:var(--text3);text-align:center;" data-i18n="waiting.awaitingAnswer">In attesa che risponda</div>
+      <div style="font-size:14px;color:var(--text3);text-align:center;" data-i18n="waiting.awaitingAnswer">In attesa che risponda</div>
     </div>
   </div>
 </div><!-- /page-waiting -->
@@ -627,7 +626,7 @@
             </div>
             <div class="settings-row">
               <div><div class="settings-label" data-i18n="settings.exportFmt">Formato Export</div><div class="settings-desc" data-i18n="settings.exportFmtDesc">Scegli il formato del file quando scarichi i sottotitoli di una chiamata</div></div>
-              <select class="input" style="width:140px;">
+              <select class="input" style="width:140px;" id="export-format-select">
                 <option selected>.txt</option>
                 <option>.pdf</option>
                 <option>.docx</option>
@@ -714,8 +713,8 @@
           <div class="card mb-4" style="text-align:center;padding:32px 24px;">
             <div class="avatar xl" id="profile-avatar" style="background:linear-gradient(135deg,#2563eb,#7c3aed);margin:0 auto 16px;width:72px;height:72px;font-size:26px;font-weight:700;">MR</div>
             <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;" id="profile-fullname">Mario Rossi</div>
-            <div style="font-size:13px;color:var(--text2);margin-top:4px;" id="profile-username">@mariorossi</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:4px;" id="profile-email-display"></div>
+            <div style="font-size:15px;color:var(--text2);margin-top:4px;" id="profile-username">@mariorossi</div>
+            <div style="font-size:14px;color:var(--text3);margin-top:4px;" id="profile-email-display"></div>
             <div style="margin-top:16px;">
               <div class="badge badge-green badge-dot" style="display:inline-flex;" data-i18n="nav.connected">Connesso</div>
             </div>
@@ -889,18 +888,18 @@
             </div>
             <div>
               <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Dashboard — Contatti</h2>
-              <div style="font-size:12px;color:var(--text3);">Schermata principale dopo il login</div>
+              <div style="font-size:14px;color:var(--text3);">Schermata principale dopo il login</div>
             </div>
           </div>
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">La <strong>Dashboard</strong> è il punto di partenza: mostra la tua lista contatti con lo stato di presenza in tempo reale (online / offline). Da qui puoi avviare subito una videochiamata cliccando il pulsante di chiamata accanto a un contatto, oppure aprire la scheda di quel contatto per vedere le ultime chiamate condivise.</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Stato di presenza</div>
-              <div style="font-size:12px;color:var(--text2);">Pallino verde = online e raggiungibile per una chiamata in questo momento.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Stato di presenza</div>
+              <div style="font-size:14px;color:var(--text2);">Pallino verde = online e raggiungibile per una chiamata in questo momento.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Chiamata rapida</div>
-              <div style="font-size:12px;color:var(--text2);">Il tasto telefono accanto al contatto avvia direttamente la sala d'attesa pre-chiamata.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Chiamata rapida</div>
+              <div style="font-size:14px;color:var(--text2);">Il tasto telefono accanto al contatto avvia direttamente la sala d'attesa pre-chiamata.</div>
             </div>
           </div>
         </div>
@@ -913,22 +912,22 @@
             </div>
             <div>
               <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Aggiungi Contatto</h2>
-              <div style="font-size:12px;color:var(--text3);">Cerca e connettiti con altri utenti</div>
+              <div style="font-size:14px;color:var(--text3);">Cerca e connettiti con altri utenti</div>
             </div>
           </div>
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">Cerca altri utenti HandTrackLIS per <strong>email o nome utente</strong> (@nomeutente). Invia una richiesta di contatto: l'altro utente riceverà una notifica e potrà accettarla o rifiutarla. Una volta accettata, entrambi vi comparite nelle rispettive liste contatti.</p>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Richieste in entrata</div>
-              <div style="font-size:12px;color:var(--text2);">Visualizzi e gestisci le richieste che hai ricevuto con Accetta / Rifiuta.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Richieste in entrata</div>
+              <div style="font-size:14px;color:var(--text2);">Visualizzi e gestisci le richieste che hai ricevuto con Accetta / Rifiuta.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Richieste in attesa</div>
-              <div style="font-size:12px;color:var(--text2);">Le tue richieste inviate restano in stato "In attesa" finché l'altro non risponde.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Richieste in attesa</div>
+              <div style="font-size:14px;color:var(--text2);">Le tue richieste inviate restano in stato "In attesa" finché l'altro non risponde.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Suggeriti</div>
-              <div style="font-size:12px;color:var(--text2);">HandTrackLIS può suggerire utenti in base ai contatti comuni già presenti nella rete.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Suggeriti</div>
+              <div style="font-size:14px;color:var(--text2);">HandTrackLIS può suggerire utenti in base ai contatti comuni già presenti nella rete.</div>
             </div>
           </div>
         </div>
@@ -941,7 +940,7 @@
             </div>
             <div>
               <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Chiamate Video con LIS</h2>
-              <div style="font-size:12px;color:var(--text3);">Sala d'attesa → Chiamata → Trascrizione</div>
+              <div style="font-size:14px;color:var(--text3);">Sala d'attesa → Chiamata → Trascrizione</div>
             </div>
           </div>
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:16px;">Il flusso di una chiamata si svolge in tre momenti:</p>
@@ -951,33 +950,33 @@
               <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
               <div>
                 <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Sala d'attesa (pre-call)</div>
-                <div style="font-size:13px;color:var(--text2);line-height:1.6;">Prima di entrare in chiamata compare un'anteprima della tua webcam. Puoi attivare o disattivare fotocamera e microfono, verificare che il tracciamento mano sia attivo, e poi confermare la connessione. La pagina mostra anche lo stato dell'interlocutore (in attesa / in chiamata).</div>
+                <div style="font-size:15px;color:var(--text2);line-height:1.6;">Prima di entrare in chiamata compare un'anteprima della tua webcam. Puoi attivare o disattivare fotocamera e microfono, verificare che il tracciamento mano sia attivo, e poi confermare la connessione. La pagina mostra anche lo stato dell'interlocutore (in attesa / in chiamata).</div>
               </div>
             </div>
             <div style="display:flex;gap:14px;align-items:flex-start;">
               <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
               <div>
                 <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Videochiamata in diretta</div>
-                <div style="font-size:13px;color:var(--text2);line-height:1.6;">L'interfaccia di chiamata mostra il video dell'interlocutore in grande e il tuo in piccolo (picture-in-picture). Il pannello sottotitoli, sempre visibile, aggiorna in tempo reale il testo generato dal riconoscimento LIS. Puoi silenziare il microfono, disattivare la fotocamera o mettere in pausa il tracciamento senza interrompere la chiamata. In alto trovi un timer con la durata della sessione.</div>
+                <div style="font-size:15px;color:var(--text2);line-height:1.6;">L'interfaccia di chiamata mostra il video dell'interlocutore in grande e il tuo in piccolo (picture-in-picture). Il pannello sottotitoli, sempre visibile, aggiorna in tempo reale il testo generato dal riconoscimento LIS. Puoi silenziare il microfono, disattivare la fotocamera o mettere in pausa il tracciamento senza interrompere la chiamata. In alto trovi un timer con la durata della sessione.</div>
               </div>
             </div>
             <div style="display:flex;gap:14px;align-items:flex-start;">
               <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
               <div>
                 <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Fine chiamata e trascrizione</div>
-                <div style="font-size:13px;color:var(--text2);line-height:1.6;">Al termine vengono mostrate le statistiche della sessione (durata, numero di gesti riconosciuti, precisione media) e la trascrizione completa. Puoi scaricarla in formato TXT o PDF direttamente dalla schermata di riepilogo.</div>
+                <div style="font-size:15px;color:var(--text2);line-height:1.6;">Al termine vengono mostrate le statistiche della sessione (durata, numero di gesti riconosciuti, precisione media) e la trascrizione completa. Puoi scaricarla in formato TXT o PDF direttamente dalla schermata di riepilogo.</div>
               </div>
             </div>
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--accent);">Chiamate in entrata</div>
-              <div style="font-size:12px;color:var(--text2);">Se un contatto ti chiama, compare un overlay con nome e avatar. Puoi accettare o rifiutare senza lasciare la pagina corrente.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:var(--accent);">Chiamate in entrata</div>
+              <div style="font-size:14px;color:var(--text2);">Se un contatto ti chiama, compare un overlay con nome e avatar. Puoi accettare o rifiutare senza lasciare la pagina corrente.</div>
             </div>
             <div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--accent);">Inviti a chiamate di gruppo</div>
-              <div style="font-size:12px;color:var(--text2);">Puoi ricevere un invito a partecipare a una sessione già in corso avviata da un altro contatto.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:var(--accent);">Inviti a chiamate di gruppo</div>
+              <div style="font-size:14px;color:var(--text2);">Puoi ricevere un invito a partecipare a una sessione già in corso avviata da un altro contatto.</div>
             </div>
           </div>
         </div>
@@ -990,18 +989,18 @@
             </div>
             <div>
               <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Chiamate Recenti</h2>
-              <div style="font-size:12px;color:var(--text3);">Storico sessioni e trascrizioni salvate</div>
+              <div style="font-size:14px;color:var(--text3);">Storico sessioni e trascrizioni salvate</div>
             </div>
           </div>
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">La sezione <strong>Chiamate Recenti</strong> mostra lo storico di tutte le sessioni ordinate dalla più recente. Per ogni chiamata vedi il nome del contatto, la data, la durata e lo stato (completata, persa, rifiutata). Cliccando su una voce puoi rileggere la trascrizione e scaricarla nuovamente oppure richiamare subito il contatto.</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Filtro per contatto</div>
-              <div style="font-size:12px;color:var(--text2);">Puoi filtrare la lista per nome contatto o per data per trovare rapidamente una sessione passata.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Filtro per contatto</div>
+              <div style="font-size:14px;color:var(--text2);">Puoi filtrare la lista per nome contatto o per data per trovare rapidamente una sessione passata.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Re-download trascrizione</div>
-              <div style="font-size:12px;color:var(--text2);">Le trascrizioni restano disponibili per 12 mesi (modificabile nelle Impostazioni).</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Re-download trascrizione</div>
+              <div style="font-size:14px;color:var(--text2);">Le trascrizioni restano disponibili per 12 mesi (modificabile nelle Impostazioni).</div>
             </div>
           </div>
         </div>
@@ -1014,34 +1013,34 @@
             </div>
             <div>
               <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Impostazioni</h2>
-              <div style="font-size:12px;color:var(--text3);">Personalizza l'esperienza di utilizzo</div>
+              <div style="font-size:14px;color:var(--text3);">Personalizza l'esperienza di utilizzo</div>
             </div>
           </div>
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">Le Impostazioni raccolgono tutte le preferenze dell'app, organizzate per categoria:</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Aspetto</div>
-              <div style="font-size:12px;color:var(--text2);">Scegli se usare lo sfondo chiaro, scuro o quello del tuo sistema. La scelta viene ricordata anche dopo aver riaperto l'app.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Aspetto</div>
+              <div style="font-size:14px;color:var(--text2);">Scegli se usare lo sfondo chiaro, scuro o quello del tuo sistema. La scelta viene ricordata anche dopo aver riaperto l'app.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Sottotitoli</div>
-              <div style="font-size:12px;color:var(--text2);">Regola la dimensione del testo, la posizione sullo schermo, il colore dello sfondo e la trasparenza del riquadro dei sottotitoli.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Sottotitoli</div>
+              <div style="font-size:14px;color:var(--text2);">Regola la dimensione del testo, la posizione sullo schermo, il colore dello sfondo e la trasparenza del riquadro dei sottotitoli.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Lingua</div>
-              <div style="font-size:12px;color:var(--text2);">Scegli la lingua dell'app (Italiano o Inglese) e quella in cui vuoi leggere i sottotitoli.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Lingua</div>
+              <div style="font-size:14px;color:var(--text2);">Scegli la lingua dell'app (Italiano o Inglese) e quella in cui vuoi leggere i sottotitoli.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Notifiche</div>
-              <div style="font-size:12px;color:var(--text2);">Scegli se ricevere un suono quando arriva una chiamata, una richiesta di contatto o un messaggio dell'app.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Notifiche</div>
+              <div style="font-size:14px;color:var(--text2);">Scegli se ricevere un suono quando arriva una chiamata, una richiesta di contatto o un messaggio dell'app.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Dispositivi</div>
-              <div style="font-size:12px;color:var(--text2);">Se hai più di una webcam o microfono collegati, puoi scegliere quale usare nelle chiamate.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Dispositivi</div>
+              <div style="font-size:14px;color:var(--text2);">Se hai più di una webcam o microfono collegati, puoi scegliere quale usare nelle chiamate.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Esportazione</div>
-              <div style="font-size:12px;color:var(--text2);">Scegli il formato preferito per scaricare i sottotitoli (TXT o PDF) e per quanto tempo tenerli disponibili (3, 6 o 12 mesi).</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Esportazione</div>
+              <div style="font-size:14px;color:var(--text2);">Scegli il formato preferito per scaricare i sottotitoli (TXT o PDF) e per quanto tempo tenerli disponibili (3, 6 o 12 mesi).</div>
             </div>
           </div>
         </div>
@@ -1054,26 +1053,26 @@
             </div>
             <div>
               <h2 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px;">Profilo</h2>
-              <div style="font-size:12px;color:var(--text3);">Le tue informazioni personali e l'account</div>
+              <div style="font-size:14px;color:var(--text3);">Le tue informazioni personali e l'account</div>
             </div>
           </div>
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">Nel <strong>Profilo</strong> puoi modificare le informazioni che gli altri utenti vedono quando ricevono una tua richiesta di contatto o una tua chiamata:</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Nome e username</div>
-              <div style="font-size:12px;color:var(--text2);">Il nome visualizzato nelle chiamate e lo @username usato per essere cercato da altri utenti.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Nome e username</div>
+              <div style="font-size:14px;color:var(--text2);">Il nome visualizzato nelle chiamate e lo @username usato per essere cercato da altri utenti.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Avatar</div>
-              <div style="font-size:12px;color:var(--text2);">Carica un'immagine del profilo o usa le iniziali generate automaticamente dall'app.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Avatar</div>
+              <div style="font-size:14px;color:var(--text2);">Carica un'immagine del profilo o usa le iniziali generate automaticamente dall'app.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Email e password</div>
-              <div style="font-size:12px;color:var(--text2);">Modifica l'indirizzo email o cambia la password di accesso in qualsiasi momento.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Email e password</div>
+              <div style="font-size:14px;color:var(--text2);">Modifica l'indirizzo email o cambia la password di accesso in qualsiasi momento.</div>
             </div>
             <div style="background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.18);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--red);">Elimina account</div>
-              <div style="font-size:12px;color:var(--text2);">Puoi eliminare definitivamente il tuo account e tutti i dati associati (vedi Privacy Policy per i dettagli).</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:var(--red);">Elimina account</div>
+              <div style="font-size:14px;color:var(--text2);">Puoi eliminare definitivamente il tuo account e tutti i dati associati (vedi Privacy Policy per i dettagli).</div>
             </div>
           </div>
         </div>
@@ -1297,24 +1296,24 @@ body.dark .toggle.on { border-color: var(--accent); }
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:12px;">I dati vengono trattati esclusivamente per le seguenti finalità:</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Erogazione del servizio</div>
-              <div style="font-size:12px;color:var(--text2);">Permettere videochiamate con riconoscimento LIS in tempo reale.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Erogazione del servizio</div>
+              <div style="font-size:14px;color:var(--text2);">Permettere videochiamate con riconoscimento LIS in tempo reale.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Gestione account</div>
-              <div style="font-size:12px;color:var(--text2);">Autenticazione, gestione profilo, contatti e richieste di contatto.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Gestione account</div>
+              <div style="font-size:14px;color:var(--text2);">Autenticazione, gestione profilo, contatti e richieste di contatto.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Sicurezza</div>
-              <div style="font-size:12px;color:var(--text2);">Prevenzione di accessi non autorizzati, sessioni scadute e abusi.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Sicurezza</div>
+              <div style="font-size:14px;color:var(--text2);">Prevenzione di accessi non autorizzati, sessioni scadute e abusi.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Suggerimento contatti</div>
-              <div style="font-size:12px;color:var(--text2);">Analisi delle connessioni tra utenti per proporre "persone che potresti conoscere".</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Suggerimento contatti</div>
+              <div style="font-size:14px;color:var(--text2);">Analisi delle connessioni tra utenti per proporre "persone che potresti conoscere".</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Trascrizioni</div>
-              <div style="font-size:12px;color:var(--text2);">Esportazione locale delle trascrizioni a richiesta dell'utente (il file viene scaricato sul tuo dispositivo).</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Trascrizioni</div>
+              <div style="font-size:14px;color:var(--text2);">Esportazione locale delle trascrizioni a richiesta dell'utente (il file viene scaricato sul tuo dispositivo).</div>
             </div>
           </div>
         </div>
@@ -1352,28 +1351,28 @@ body.dark .toggle.on { border-color: var(--accent); }
           <p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:12px;">In qualità di interessato hai il diritto di:</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Accesso</div>
-              <div style="font-size:12px;color:var(--text2);">Ottenere copia dei tuoi dati personali trattati.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Accesso</div>
+              <div style="font-size:14px;color:var(--text2);">Ottenere copia dei tuoi dati personali trattati.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Rettifica</div>
-              <div style="font-size:12px;color:var(--text2);">Correggere dati inesatti o incompleti.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Rettifica</div>
+              <div style="font-size:14px;color:var(--text2);">Correggere dati inesatti o incompleti.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Cancellazione</div>
-              <div style="font-size:12px;color:var(--text2);">Richiedere l'eliminazione dei tuoi dati ("diritto all'oblio").</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Cancellazione</div>
+              <div style="font-size:14px;color:var(--text2);">Richiedere l'eliminazione dei tuoi dati ("diritto all'oblio").</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Portabilità</div>
-              <div style="font-size:12px;color:var(--text2);">Ricevere i tuoi dati in formato strutturato e leggibile.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Portabilità</div>
+              <div style="font-size:14px;color:var(--text2);">Ricevere i tuoi dati in formato strutturato e leggibile.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Opposizione</div>
-              <div style="font-size:12px;color:var(--text2);">Opporti al trattamento in qualsiasi momento.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Opposizione</div>
+              <div style="font-size:14px;color:var(--text2);">Opporti al trattamento in qualsiasi momento.</div>
             </div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Reclamo</div>
-              <div style="font-size:12px;color:var(--text2);">Presentare reclamo al Garante per la Protezione dei Dati Personali.</div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Reclamo</div>
+              <div style="font-size:14px;color:var(--text2);">Presentare reclamo al Garante per la Protezione dei Dati Personali.</div>
             </div>
           </div>
         </div>
@@ -1439,5 +1438,202 @@ body.dark .toggle.on { border-color: var(--accent); }
 
 <script src="router.js"></script>
 <script src="script.js"></script>
+
+<!-- ================================================================ DRAWER FOOTER ================================================================ -->
+<style>
+/* --- Drawer footer --- */
+#drawer-footer-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+#drawer-footer-btn:hover { background: var(--bg3); box-shadow: 0 6px 20px rgba(0,0,0,0.22); }
+#drawer-footer-btn svg { transition: transform 0.35s cubic-bezier(.4,0,.2,1); }
+#drawer-footer-btn.open svg { transform: rotate(180deg); }
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+#save-transcript-overlay.show { display: flex !important; }
+#drawer-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  z-index: 890;
+  transform: translateY(100%);
+  transition: transform 0.38s cubic-bezier(.4,0,.2,1);
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 28px 48px 32px;
+}
+#drawer-footer.open { transform: translateY(0); }
+#drawer-footer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 880;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(2px);
+}
+#drawer-footer-overlay.open { display: block; }
+
+.df-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 24px;
+  max-width: 860px;
+  margin: 0 auto 28px;
+}
+@media (max-width: 700px) { .df-grid { grid-template-columns: repeat(2,1fr); } }
+.df-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.df-desc { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 0; }
+.df-col-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text3);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.df-link {
+  display: block;
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.df-link:hover { color: var(--accent); }
+.df-bottom {
+  max-width: 860px;
+  margin: 0 auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text3);
+  text-align: center;
+}
+</style>
+
+<!-- Overlay -->
+<div id="drawer-footer-overlay" onclick="closeDrawerFooter()"></div>
+
+<!-- Drawer -->
+<div id="drawer-footer">
+  <div class="df-grid">
+    <div>
+      <div class="df-brand">
+        <div class="logo-icon" style="width:24px;height:24px;border-radius:5px;flex-shrink:0;">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" style="width:14px;height:14px;" alt="">
+        </div>
+        HandTrackLIS
+      </div>
+      <p class="df-desc">Progetto open-source che unisce la LIS e la comunicazione video in tempo reale tramite IA.</p>
+    </div>
+    <div>
+      <div class="df-col-title">Piattaforma</div>
+      <a class="df-link" onclick="closeDrawerFooter();goTo('page-home')">Home</a>
+      <a class="df-link" onclick="closeDrawerFooter();goTo('page-login')">Registrati</a>
+      <a class="df-link" onclick="closeDrawerFooter();goTo('page-how')">Come Funziona</a>
+    </div>
+    <div>
+      <div class="df-col-title">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' style='opacity:0.5' stroke-width='2'%3E%3Crect x='2' y='4' width='20' height='16' rx='2'/%3E%3Cpath d='M2 7l10 7 10-7'/%3E%3C/svg%3E" style="width:12px;height:12px;" alt="">
+        Email
+      </div>
+      <a class="df-link" href="mailto:info@handtracklist.it">info@handtracklist.it</a>
+      <a class="df-link" href="mailto:supporto@handtracklist.it">supporto@handtracklist.it</a>
+    </div>
+    <div>
+      <div class="df-col-title">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' style='opacity:0.5' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10A15.3 15.3 0 0 1 8 12a15.3 15.3 0 0 1 4-10z'/%3E%3C/svg%3E" style="width:12px;height:12px;" alt="">
+        Social
+      </div>
+      <a class="df-link" href="https://github.com/handtracklis" target="_blank" rel="noopener">GitHub</a>
+      <a class="df-link" href="https://instagram.com/handtracklis" target="_blank" rel="noopener">Instagram</a>
+    </div>
+    <div>
+      <div class="df-col-title">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' style='opacity:0.5' stroke-width='2'%3E%3Cpath d='M12 21s-8-7.5-8-12a8 8 0 1 1 16 0c0 4.5-8 12-8 12z'/%3E%3Ccircle cx='12' cy='9' r='3'/%3E%3C/svg%3E" style="width:12px;height:12px;" alt="">
+        Sede
+      </div>
+      <span class="df-link" style="cursor:default;">Genova, Italia</span>
+      <span class="df-link" style="cursor:default;font-size:11px;opacity:0.7;">Progetto Scolastico 2026</span>
+    </div>
+  </div>
+  <div class="df-bottom">2026 HandTrackLIS — Progetto Scolastico</div>
+</div>
+
+<!-- ================================================================ SAVE TRANSCRIPT OVERLAY ================================================================ -->
+<div id="save-transcript-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div id="save-transcript-card" style="background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:32px 28px;max-width:420px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.25);animation:slideUpFade 0.28s cubic-bezier(.4,0,.2,1);">
+    <!-- Icon + title -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+      <div style="width:44px;height:44px;border-radius:13px;background:rgba(37,99,235,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text);">Salva la Trascrizione</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Vuoi salvare la chat di questa chiamata?</div>
+      </div>
+    </div>
+
+    <!-- Chat preview -->
+    <div id="transcript-preview" style="margin:18px 0 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:180px;overflow-y:auto;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;font-family:'DM Sans',sans-serif;"></div>
+
+    <!-- Format info -->
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;margin-bottom:20px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      <span style="font-size:12px;color:var(--text2);">Formato: <strong id="transcript-format-label" style="color:var(--text);">.txt</strong> — cambiabile in <a onclick="closeTranscriptOverlay();goTo('page-settings')" style="color:var(--accent);cursor:pointer;text-decoration:underline;">Impostazioni</a></span>
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:10px;">
+      <button class="btn w-full" onclick="closeTranscriptOverlay()" style="justify-content:center;padding:11px;border-radius:11px;font-weight:600;gap:6px;border:1px solid var(--border);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Non salvare
+      </button>
+      <button class="btn btn-primary w-full" onclick="downloadTranscript()" style="justify-content:center;padding:11px;border-radius:11px;font-weight:600;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Scarica
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toggle button -->
+<button id="drawer-footer-btn" onclick="toggleDrawerFooter()" title="Apri footer" aria-label="Apri footer">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <polyline points="18 15 12 9 6 15"></polyline>
+  </svg>
+</button>
+
 </body>
 </html>

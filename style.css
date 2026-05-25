@@ -1518,9 +1518,20 @@ select.input {
   opacity: 1;
 }
 
-/* Tile "self" dentro la griglia remota */
+/* Tile "self" dentro la griglia remota — stesso comportamento dei tile remoti */
 .remote-video-tile.self-in-grid video {
-  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;     /* mantiene l'aspect ratio, niente crop */
+  background: #0d1117;
+}
+
+/* Nel layout a 2 peer, anche il self tile usa width:auto per rispettare l'aspect ratio */
+.remote-videos-grid[data-peers="2"] .remote-video-tile.self-in-grid video {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
 }
 
 /* ── Controls bar ── */

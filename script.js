@@ -898,9 +898,6 @@ async function loadRecents() {
     const dirColor  = missed ? 'var(--red)' : 'var(--text2)';
     const iconClass = missed ? 'missed' : isOut ? 'out' : 'in';
     const icon      = missed ? ICON_MISSED : isOut ? ICON_OUT : ICON_IN;
-    const trascrBtn = !missed
-      ? `<button class="btn btn-outline text-xs" onclick="goTo('page-call')">Trascrizione</button>`
-      : '';
 
     return `
       <div class="call-item" onclick="openCallDetail(${call.id})">
@@ -911,7 +908,6 @@ async function loadRecents() {
           <div class="text-xs" style="color:${dirColor};">${dirLabel}${durationStr}</div>
         </div>
         <div class="text-xs text-muted">${when}</div>
-        ${trascrBtn}
         <button class="btn btn-primary text-xs" data-uid="${otherId||0}" data-name="${otherName}" data-ini="${otherInit}" onclick="event.stopPropagation();startCall(+this.dataset.uid,this.dataset.name,this.dataset.ini)">Richiama</button>
       </div>`;
   }).join('');
@@ -1395,6 +1391,7 @@ let incomingPollInterval   = null;
 let callStatusPollInterval = null;
 let chatPollInterval       = null;
 let lastChatMsgId          = 0;
+let _callTranscriptLog     = []; // registro in memoria della chat di chiamata
 
 function startIncomingCallPoller() {
   stopIncomingCallPoller();
@@ -1645,6 +1642,7 @@ async function enterCall(callId, peer, role) {
   activeCallPeer = peer;
   callRole       = role;
   lastChatMsgId  = 0;
+  _callTranscriptLog = [];
 
   // Popola sempre currentUser nel map
   Object.keys(callParticipantsMap).forEach(k => delete callParticipantsMap[k]);
@@ -1760,8 +1758,214 @@ async function endActiveCall() {
     await apiPost(API.calls, { action: 'end', call_id: activeCallId });
   }
 
+  // Raccogli la trascrizione chat prima di azzerare lo stato
+  const transcript = collectChatTranscript();
+
   activeCallId = null; activeCallPeer = null; callRole = null;
+
+  if (transcript.trim().length > 0) {
+    showTranscriptOverlay(transcript);
+  } else {
+    goTo('page-dashboard');
+  }
+}
+
+// Costruisce la trascrizione dal registro in memoria (non dal DOM)
+function collectChatTranscript() {
+  return _callTranscriptLog.map(e => `[${e.time}] ${e.sender}: ${e.content}`).join('\n');
+}
+
+let _pendingTranscript = '';
+
+function showTranscriptOverlay(transcript) {
+  _pendingTranscript = transcript;
+
+  // Leggi formato dalle impostazioni
+  const fmtSel = document.getElementById('export-format-select');
+  const fmt = fmtSel ? fmtSel.value : '.txt';
+  const fmtLabel = document.getElementById('transcript-format-label');
+  if (fmtLabel) fmtLabel.textContent = fmt;
+
+  // Mostra anteprima
+  const preview = document.getElementById('transcript-preview');
+  if (preview) {
+    const lines = transcript.split('\n');
+    preview.textContent = lines.length > 12
+      ? lines.slice(0, 12).join('\n') + `\n… (+${lines.length - 12} messaggi)`
+      : transcript;
+  }
+
+  const overlay = document.getElementById('save-transcript-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    overlay.classList.add('show');
+  }
+}
+
+function closeTranscriptOverlay() {
+  const overlay = document.getElementById('save-transcript-overlay');
+  if (overlay) { overlay.style.display = 'none'; overlay.classList.remove('show'); }
+  _pendingTranscript = '';
   goTo('page-dashboard');
+}
+
+async function downloadTranscript() {
+  const fmtSel = document.getElementById('export-format-select');
+  const fmt = fmtSel ? fmtSel.value : '.txt';
+  const text = _pendingTranscript;
+  const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `trascrizione-chiamata-${ts}`;
+
+  if (fmt === '.txt') {
+    _downloadBlob(new Blob([text], { type: 'text/plain' }), filename + '.txt');
+  } else if (fmt === '.pdf') {
+    _downloadTranscriptAsPdf(text, filename + '.pdf');
+  } else if (fmt === '.docx') {
+    _downloadTranscriptAsDocx(text, filename + '.docx');
+  }
+
+  closeTranscriptOverlay();
+  showToast('Trascrizione salvata!');
+}
+
+function _downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function _downloadTranscriptAsPdf(text, filename) {
+  // PDF minimalista costruito a mano (senza librerie esterne)
+  const lines = text.split('\n');
+  const escPdf = s => s.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+
+  const pageW = 595, pageH = 842, margin = 50, lineH = 16, fontSize = 10, titleSize = 14;
+  let y = pageH - margin;
+  const contentStreams = [];
+
+  const pushLine = (ln, size) => {
+    if (y < margin + lineH) { contentStreams.push(''); y = pageH - margin; }
+    contentStreams.push(`BT /F1 ${size} Tf ${margin} ${y} Td (${escPdf(ln)}) Tj ET`);
+    y -= lineH + (size > 10 ? 4 : 0);
+  };
+
+  pushLine('Trascrizione Chiamata — HandTrackLIS', titleSize);
+  pushLine(new Date().toLocaleString('it-IT'), fontSize);
+  contentStreams.push(`BT /F1 ${fontSize} Tf ${margin} ${y} Td () Tj ET`); y -= lineH;
+
+  lines.forEach(ln => pushLine(ln.length > 90 ? ln.slice(0, 90) + '…' : ln, fontSize));
+
+  const streamStr = contentStreams.join('\n');
+  const pdf = [
+    '%PDF-1.4',
+    '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj',
+    '2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj',
+    `3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${pageW} ${pageH}]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj`,
+    `4 0 obj<</Length ${streamStr.length}>>\nstream\n${streamStr}\nendstream\nendobj`,
+    '5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj',
+    'xref','0 6','0000000000 65535 f ',
+  ].join('\n');
+
+  _downloadBlob(new Blob([pdf], { type: 'application/pdf' }), filename);
+}
+
+function _downloadTranscriptAsDocx(text, filename) {
+  // DOCX minimalista: XML dentro ZIP (niente dipendenze)
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const paras = text.split('\n').map(l =>
+    `<w:p><w:r><w:t xml:space="preserve">${esc(l)}</w:t></w:r></w:p>`
+  ).join('');
+
+  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>Trascrizione Chiamata — HandTrackLIS</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:color w:val="6B7280"/></w:rPr><w:t>${esc(new Date().toLocaleString('it-IT'))}</w:t></w:r></w:p>
+<w:p><w:r><w:t></w:t></w:r></w:p>
+${paras}
+<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr>
+</w:body>
+</w:document>`;
+
+  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  // Mini ZIP builder (store, no compression)
+  function strToBytes(str) {
+    const enc = new TextEncoder();
+    return enc.encode(str);
+  }
+  function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      c ^= bytes[i];
+      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function u16(n) { return [n & 0xFF, (n >> 8) & 0xFF]; }
+  function u32(n) { return [n & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF, (n >> 24) & 0xFF]; }
+
+  const entries = [
+    { name: '_rels/.rels',           data: strToBytes(relsXml) },
+    { name: '[Content_Types].xml',   data: strToBytes(contentTypesXml) },
+    { name: 'word/document.xml',     data: strToBytes(docXml) },
+  ];
+
+  const parts = [];
+  const centralDir = [];
+  let offset = 0;
+
+  entries.forEach(e => {
+    const nameBytes = strToBytes(e.name);
+    const crc = crc32(e.data);
+    const localHeader = [
+      0x50,0x4B,0x03,0x04,
+      ...u16(20),...u16(0),...u16(0),
+      ...u16(0),...u16(0),
+      ...u32(crc),
+      ...u32(e.data.length),...u32(e.data.length),
+      ...u16(nameBytes.length),...u16(0),
+      ...nameBytes,
+    ];
+    const centralEntry = [
+      0x50,0x4B,0x01,0x02,
+      ...u16(20),...u16(20),...u16(0),...u16(0),
+      ...u16(0),...u16(0),
+      ...u32(crc),
+      ...u32(e.data.length),...u32(e.data.length),
+      ...u16(nameBytes.length),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(0),...u32(offset),
+      ...nameBytes,
+    ];
+    parts.push(new Uint8Array(localHeader), e.data);
+    centralDir.push(new Uint8Array(centralEntry));
+    offset += localHeader.length + e.data.length;
+  });
+
+  const cdSize  = centralDir.reduce((s, b) => s + b.length, 0);
+  const eocd = [
+    0x50,0x4B,0x05,0x06,
+    ...u16(0),...u16(0),
+    ...u16(entries.length),...u16(entries.length),
+    ...u32(cdSize),...u32(offset),
+    ...u16(0),
+  ];
+
+  const blob = new Blob([...parts, ...centralDir, new Uint8Array(eocd)],
+    { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  _downloadBlob(blob, filename);
 }
 
 // ================================================================
@@ -2590,7 +2794,7 @@ function selfTileEnterGrid() {
   vid.playsInline = true;
   vid.muted = true;
   vid.srcObject = localStream;
-  vid.style.cssText = 'width:100%;height:100%;object-fit:cover;background:#0d1117;';
+  vid.style.cssText = '';
 
   // Label "Tu"
   const label = document.createElement('div');
@@ -2669,8 +2873,13 @@ async function pollChatMessages() {
   const { data: callRow } = await apiGet(API.calls, { action: 'status', call_id: activeCallId });
   if (callRow && callRow.status_call === 'ended') {
     stopChatPoller(); stopCallTimer();
+    const transcript = collectChatTranscript();
     activeCallId = null; activeCallPeer = null; callRole = null;
-    goTo('page-dashboard');
+    if (transcript.trim().length > 0) {
+      showTranscriptOverlay(transcript);
+    } else {
+      goTo('page-dashboard');
+    }
     showToast('La chiamata è stata terminata dall\'altro utente.');
     return;
   }
@@ -2678,7 +2887,9 @@ async function pollChatMessages() {
   // Controlla partecipanti attivi — rileva nuovi arrivati e avvia WebRTC verso di loro
   const { data: activeParticipants } = await apiGet(API.calls, { action: 'active_participants', call_id: activeCallId });
   if (activeParticipants && activeParticipants.length <= 1) {
+    const transcript = collectChatTranscript();
     await endActiveCall();
+    if (transcript.trim().length > 0) showTranscriptOverlay(transcript);
     showToast('La chiamata è terminata (tutti gli altri hanno lasciato).');
     return;
   }
@@ -2799,7 +3010,15 @@ async function pollChatMessages() {
     const isOwn  = msg.sender_id === currentUser.id;
     const sender = callParticipantsMap[msg.sender_id];
     const time   = new Date(msg.sent_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-    const div    = document.createElement('div');
+
+    // ── Registro in memoria per la trascrizione ──────────────────
+    const senderName = isOwn
+      ? ((currentUser.nome || '') + ' ' + (currentUser.cognome || '')).trim() || currentUser.username || 'Tu'
+      : (sender?.name || 'Utente ' + msg.sender_id);
+    _callTranscriptLog.push({ time, sender: senderName, content: msg.content });
+    // ─────────────────────────────────────────────────────────────
+
+    const div = document.createElement('div');
     div.className = isOwn ? 'chat-msg-own' : 'chat-msg-other';
     if (isOwn) {
       div.innerHTML = `
@@ -3106,16 +3325,6 @@ function updateDeleteAccountBanner(deletionDateISO) {
   btnDel.style.display = 'none';
   const cancelBtn = banner.querySelector('button');
   if (cancelBtn) cancelBtn.style.display = 'flex';
-}
-
-function downloadTranscript() {
-  const content = "TRASCRIZIONE CHIAMATA HandTrackLIS\nData: " + new Date().toLocaleDateString('it-IT') + "\nDurata: 24 minuti - 47 gesti LIS riconosciuti\n---------------------------------------------\n\n[14:02] Lucia Conti: Ciao, come stai?\n[14:02] Mario Rossi: Sto bene, grazie!\n[14:03] Lucia Conti: Oggi voglio parlare del progetto.\n[14:03] Mario Rossi: Certo, sono pronto ad ascoltare.\n\n---------------------------------------------\nTrascrizione generata automaticamente da HandTrackLIS - LIS AI Engine v2.1\n";
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = 'trascrizione_handtracklis.txt'; a.click();
-  URL.revokeObjectURL(url);
-  showToast('Trascrizione scaricata');
 }
 
 // ================================================================
@@ -3703,4 +3912,40 @@ document.addEventListener('DOMContentLoaded', () => {
     sel.addEventListener('change', () => { const s = readSettingsFromUI(); applySettings(s); });
   });
   const s = loadSettings(); applySettings(s);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const drawer  = document.getElementById('drawer-footer');
+  const overlay = document.getElementById('drawer-footer-overlay');
+  const btn     = document.getElementById('drawer-footer-btn');
+  if (!drawer) return;
+
+  function openDrawerFooter() {
+    drawer.classList.add('open');
+    overlay.classList.add('open');
+    btn.classList.add('open');
+    btn.setAttribute('title', 'Chiudi footer');
+  }
+  function closeDrawerFooter() {
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+    btn.classList.remove('open');
+    btn.setAttribute('title', 'Apri footer');
+  }
+  function toggleDrawerFooter() {
+    drawer.classList.contains('open') ? closeDrawerFooter() : openDrawerFooter();
+  }
+
+  window.closeDrawerFooter  = closeDrawerFooter;
+  window.toggleDrawerFooter = toggleDrawerFooter;
+
+  const _origGoTo = window.goTo;
+  window.goTo = function(pageId) {
+    if (btn) {
+      const hide = pageId === 'page-waiting' || pageId === 'page-call';
+      btn.style.display = hide ? 'none' : '';
+      if (hide) closeDrawerFooter();
+    }
+    if (_origGoTo) _origGoTo(pageId);
+  };
 });
