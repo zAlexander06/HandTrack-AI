@@ -61,19 +61,23 @@ export function info_panel_canvas(ctx, info, x, y, titolo) {
 
 export function predizione_panel_canvas(canvas, ctx, lettera, confidenza, top3, ia_model) {
     const w = canvas.width, h = canvas.height;
-    const pw = 320, ph = 220;
-    const px = (w - pw) / 2 | 0;
-    const py = h - ph - 10;
+    const pw = 300, ph = 200;
 
-    ctx.fillStyle = "rgba(15,15,40,0.75)";
+    const px = ((w - pw) / 2) | 0;
+    const py = 65;
+
+    // Sfondo coerente con il resto dell'applicazione (Dark semi-trasparente)
+    ctx.fillStyle = "rgba(20, 20, 20, 0.85)";
     ctx.fillRect(px, py, pw, ph);
-    ctx.strokeStyle = "#3C3C78";
+
+    // Bordo coordinato con il tema viola del pulsante addestramento
+    ctx.strokeStyle = "rgba(111, 66, 193, 0.6)";
     ctx.lineWidth = 1;
     ctx.strokeRect(px, py, pw, ph);
 
     if (!lettera) {
-        const msg = ia_model ? "Nessuna mano" : "Nessun modello AI";
-        ctx.font = "14px sans-serif";
+        const msg = ia_model ? "Nessuna mano rilevata" : "Modello AI non pronto";
+        ctx.font = "13px sans-serif";
         ctx.fillStyle = "#787878";
         ctx.textAlign = "center";
         ctx.fillText(msg, px + pw / 2, py + ph / 2);
@@ -81,41 +85,44 @@ export function predizione_panel_canvas(canvas, ctx, lettera, confidenza, top3, 
         return;
     }
 
-    // Lettera
-    ctx.font = "bold 80px sans-serif";
+    // Lettera Predetta
+    ctx.font = "bold 65px sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
-    ctx.fillText(lettera, px + pw / 2, py + 92);
+    ctx.fillText(lettera, px + pw / 2, py + 75);
     ctx.textAlign = "left";
 
-    // Barra confidenza
-    const bc_x = px + 20, bc_y = py + 107;
-    const bc_w = pw - 40, bc_h = 18;
-    ctx.fillStyle = "#323232";
+    // Barra della Confidenza
+    const bc_x = px + 20, bc_y = py + 90;
+    const bc_w = pw - 40, bc_h = 16;
+    ctx.fillStyle = "#2a2a2a";
     ctx.fillRect(bc_x, bc_y, bc_w, bc_h);
 
     const fill = bc_w * confidenza | 0;
+
+    // Semaforo dinamico basato sull'accuratezza
     const r = (255 * (1 - confidenza)) | 0;
     const g = (255 * confidenza) | 0;
-
-    ctx.fillStyle = `rgb(0,${g},${r})`;
+    ctx.fillStyle = `rgb(${r},${g},0)`;
     ctx.fillRect(bc_x, bc_y, fill, bc_h);
-    ctx.strokeStyle = "#646464";
+
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
     ctx.strokeRect(bc_x, bc_y, bc_w, bc_h);
-    ctx.font = "12px sans-serif";
+
+    // Percentuale testo
+    ctx.font = "bold 11px sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
-
-    ctx.fillText(`${(confidenza * 100).toFixed(0)}%`, bc_x + bc_w / 2, bc_y + 13);
+    ctx.fillText(`${(confidenza * 100).toFixed(0)}%`, bc_x + bc_w / 2, bc_y + 12);
     ctx.textAlign = "left";
 
-    const top3_y = py + ph - 75;
+    const top3_y = py + ph - 65;
     (top3 || []).forEach(([lbl, prob], rank) => {
-        ctx.font = rank === 0 ? "13px sans-serif" : "11px sans-serif";
-        ctx.fillStyle = rank === 0 ? "#FFFFFF" : "#969696";
+        ctx.font = rank === 0 ? "bold 12px sans-serif" : "11px sans-serif";
+        ctx.fillStyle = rank === 0 ? "#00e676" : "#aaaaaa";
         ctx.fillText(
             `${rank + 1}. ${lbl}  ${(prob * 100).toFixed(0)}%`,
-            px + 20, top3_y + rank * 24
+            px + 20, top3_y + rank * 18
         );
     });
 }

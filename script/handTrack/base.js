@@ -1,6 +1,7 @@
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 import { landmarks_canvas, info_panel_canvas, predizione_panel_canvas, topbar_canvas, conferma_overlay_canvas } from "./camera_canvas.js";
 import { isServerConnesso, getServer, verifica_server, salva_csv_backend } from "../api/backend.js";
+import { caricaDizionarioItaliano, ottieniSuggerimenti } from "./dizionario.js";
 
 // Costanti
 const smooth_n = 8;
@@ -35,6 +36,11 @@ let cartella_dati = "";
 let ia_model = null;
 let label = [];
 
+// parte dei sottotitoli
+let fraseAttuale = "";
+let ultimaLetteraRiconosciuta = "";
+let contatoreStabilita = 0;
+const soglia_stabilita = 12;
 
 async function initMediaPipe() {
     const vision = await FilesetResolver.forVisionTasks(
@@ -66,6 +72,8 @@ async function initMediaPipe() {
 
 // Caricamento modello IA (ONNX)
 async function carica_modello_ia() {
+    const info = document.getElementById("info");
+
     try {
         const pathONNX = "./script/modello/modello_lis_italiano.onnx";
         const pathJSON = "./script/modello/labels.json";
@@ -82,8 +90,11 @@ async function carica_modello_ia() {
         ]);
 
         console.log("AI: Modello caricato con successo! Classi:", label);
+
+        if (info) info.textContent = "Modello IA Pronto";
     } catch (e) {
         console.error("AI: Errore durante il caricamento:", e);
+        if (info) info.textContent = "Modalità acquisizione";
     }
 }
 
@@ -347,6 +358,68 @@ function ditaAlzate(landmarks, handedness) {
     return alzate;
 }
 
+// Sottotitoli per le mani
+function gestisciNuovoSegnoPredetto(letteraPredetta, confidenza) {
+    const elementoSottotitoli = document.getElementById("sottotitoli-testo");
+    if (!elementoSottotitoli) return;
+
+    if (!letteraPredetta || letteraPredetta === "Nessun Segno") {
+        ultimaLetteraRiconosciuta = "";
+        contatoreStabilita = 0;
+        return;
+    }
+
+    if (letteraPredetta === ultimaLetteraRiconosciuta)
+        contatoreStabilita++;
+    else {
+        ultimaLetteraRiconosciuta = letteraPredetta;
+        contatoreStabilita = 0;
+    }
+
+    if (contatoreStabilita === soglia_stabilita) {
+        if (letteraPredetta === "spazio") fraseAttuale += " ";
+        else if (letteraPredetta === "cancella") fraseAttuale = fraseAttuale.slice(0, -1);
+        else fraseAttuale += letteraPredetta;
+
+        elementoSottotitoli.textContent = fraseAttuale || "In Attesa di Segni...";
+
+        elementoSottotitoli.parentElement.style.borderColor = "#00e676";
+        setTimeout(() => {
+            elementoSottotitoli.parentElement.style.borderColor = "transparent";
+        }, 150);
+
+        console.log("Frase aggiornata: ", fraseAttuale);
+
+        const nuoviSuggeerimenti = ottieniSuggerimenti(fraseAttuale);
+        mostraBottoniSuggerimento(nuoviSuggeerimenti);
+    }
+}
+
+function mostraBottoniSuggerimento(suggerimenti) {
+    const box = document.getElementById("suggerimenti-box");
+    if (!box) return;
+
+    box.innerHTML = "";
+
+    suggerimenti.forEach(parola => {
+        const btnParola = document.createElement("button");
+        btnParola.textContent = parola;
+
+        btnParola.classList.add("suggeriti-box");
+
+        btnParola.addEventListener("click", () => {
+            const parole = fraseAttuale.trim().split(" ");
+            parole[parole.length - 1] = parola;
+            fraseAttuale = parole.join(" ") + " ";
+
+            document.getElementById("sottotitoli-testo").textContent = fraseAttuale;
+            box.innerHTML = "";
+        });
+
+        box.appendChild(btnParola);
+    });
+}
+
 // Loop principale
 async function loop_handTracker() {
     const video = document.getElementById("webcam");
@@ -424,6 +497,7 @@ async function loop_handTracker() {
 
     // Predizione IA, FPS e Topbar rimangono invariati
     predizione_panel_canvas(canvas, ctx, ultima_pred.lettera, ultima_pred.confidenza, ultima_pred.top3, !!ia_model);
+    gestisciNuovoSegnoPredetto(ultima_pred.lettera, ultima_pred.confidenza);
 
     const now = performance.now();
     ultimo_fps = 1000 / Math.max(now - ultimo_frame_time, 1);
@@ -437,16 +511,19 @@ async function loop_handTracker() {
 
 // Entry point
 window.handTracker = async function () {
+    const info = document.getElementById("info");
     const video = document.getElementById("webcam");
     const recordBtn = document.getElementById("recordBtn");
     const folderInput = document.getElementById("folderInput");
     const folderLabel = document.getElementById("folderLabel");
     const btnTraining = document.getElementById("trainBtn");
+    const btnResetFrase = document.getElementById("clearBtn");
 
     await verifica_server();
     await carica_modello_ia();
     await initMediaPipe();
     window.startCamera(video);
+    await caricaDizionarioItaliano();
 
     window.addEventListener("keydown", (e) => {
         //if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -573,6 +650,15 @@ window.handTracker = async function () {
             btn.style.cursor = "pointer";
         }
     });
+
+    btnResetFrase?.addEventListener("click", () => {
+        fraseAttuale = "";
+        ultimaLetteraRiconosciuta = "";
+        contatoreStabilita = 0;
+
+        const testo = document.getElementById("sottotitoli-testo");
+        if (testo) testo.textContent = "In attesa di Segni...";
+    })
 
     function startRecording() {
         csv_row = [];
