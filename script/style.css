@@ -68,6 +68,12 @@ video {
     transition: all 0.3s ease;
 }
 
+#container-sottotitoli.hide,
+#trainBtn.hide,
+#clearBtn.hide {
+    display: none !important;
+}
+
 .container-controls {
     position: fixed;
     bottom: 25px;

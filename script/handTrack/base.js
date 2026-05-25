@@ -379,11 +379,19 @@ function gestisciNuovoSegnoPredetto(letteraPredetta, confidenza) {
     if (contatoreStabilita === soglia_stabilita) {
         if (letteraPredetta === "spazio") fraseAttuale += " ";
         else if (letteraPredetta === "cancella") fraseAttuale = fraseAttuale.slice(0, -1);
+        else if (letteraPredetta === "reset") {
+            fraseAttuale = "";
+            const boxSuggerimenti = document.getElementById("suggerimenti-box");
+            if (boxSuggerimenti) boxSuggerimenti.innerHTML = "";
+        }
         else fraseAttuale += letteraPredetta;
 
-        elementoSottotitoli.textContent = fraseAttuale || "In Attesa di Segni...";
+        elementoSottotitoli.textContent = (fraseAttuale !== "") ? fraseAttuale : "In Attesa di Segni...";
 
-        elementoSottotitoli.parentElement.style.borderColor = "#00e676";
+        if (letteraPredetta === "reset") elementoSottotitoli.parentElement.style.borderColor = "#ff5252";
+        else if (letteraPredetta === "cancella") elementoSottotitoli.parentElement.style.borderColor = "#ff9100";
+        else elementoSottotitoli.parentElement.style.borderColor = "#00e676";
+
         setTimeout(() => {
             elementoSottotitoli.parentElement.style.borderColor = "transparent";
         }, 150);
@@ -511,13 +519,13 @@ async function loop_handTracker() {
 
 // Entry point
 window.handTracker = async function () {
-    const info = document.getElementById("info");
     const video = document.getElementById("webcam");
     const recordBtn = document.getElementById("recordBtn");
     const folderInput = document.getElementById("folderInput");
     const folderLabel = document.getElementById("folderLabel");
     const btnTraining = document.getElementById("trainBtn");
     const btnResetFrase = document.getElementById("clearBtn");
+    const container_sottotitoli = document.getElementById("container-sottotitoli");
 
     await verifica_server();
     await carica_modello_ia();
@@ -559,6 +567,9 @@ window.handTracker = async function () {
                         recordBtn.style.backgroundColor = "";
                     }
                 }
+                btnTraining.classList.remove("hide");
+                btnResetFrase.classList.remove("hide");
+                container_sottotitoli.classList.remove("hide");
                 break;
         }
     });
@@ -573,6 +584,10 @@ window.handTracker = async function () {
     });
 
     recordBtn?.addEventListener("click", () => {
+        btnTraining.classList.add("hide");
+        btnResetFrase.classList.add("hide");
+        container_sottotitoli.classList.add("hide");
+
         if (status === "fermo") {
             cartella_dati = cartella_dati || (isServerConnesso() ? "Segni" : "Download");
 
@@ -585,6 +600,9 @@ window.handTracker = async function () {
         }
         else if (status === "registrazione") {
             stopRecording();
+            btnTraining.classList.remove("hide");
+            btnResetFrase.classList.remove("hide");
+            container_sottotitoli.classList.remove("hide");
         }
     });
 
@@ -658,6 +676,9 @@ window.handTracker = async function () {
 
         const testo = document.getElementById("sottotitoli-testo");
         if (testo) testo.textContent = "In attesa di Segni...";
+
+        const boxSuggerimenti = document.getElementById("suggerimenti-box");
+        if (boxSuggerimenti) boxSuggerimenti.innerHTML = "";
     })
 
     function startRecording() {
