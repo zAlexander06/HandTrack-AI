@@ -4,6 +4,9 @@
 #include <filesystem>
 #include <iostream>
 #include <mutex>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -20,6 +23,11 @@ static fs::file_time_type ora_inizio_train;
 static bool training_in_corso = false;
 static std::string errore_training = "";
 static std::mutex training_mutex;
+
+const std::vector<std::string> lettere_valide = {
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+    "spazio", "del", "canc"};
 
 static fs::path get_executable_path(const char *argv0)
 {
@@ -141,8 +149,8 @@ int main(int argc, char *argv[])
         std::string timestamp = body.value("timestamp", "0");
         auto righe = body["righe"];
 
-        const std::string lettere_valide = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; 
-        if (cartella.size() != 1 || lettere_valide.find(cartella[0]) == std::string::npos) {
+        auto it = std::find(lettere_valide.begin(), lettere_valide.end(), cartella);
+        if (it == lettere_valide.end()) {
             res.status = 400;
             res.set_content("Lettera non valida", "text/plain");
             return;

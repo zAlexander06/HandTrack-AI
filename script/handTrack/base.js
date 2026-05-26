@@ -14,6 +14,12 @@ const alfabeto_it = new Set([
     "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
 ]);
 
+export const etichette_modello = [
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+    "spazio", "del", "canc"
+];
+
 // Variabili globali
 let handLandmarker = null;
 let ultimo_risultato = null;
@@ -377,20 +383,34 @@ function gestisciNuovoSegnoPredetto(letteraPredetta, confidenza) {
     }
 
     if (contatoreStabilita === soglia_stabilita) {
+        let coloreFeedback = "#00e678";
+
         if (letteraPredetta === "spazio") fraseAttuale += " ";
-        else if (letteraPredetta === "cancella") fraseAttuale = fraseAttuale.slice(0, -1);
-        else if (letteraPredetta === "reset") {
+        else if (letteraPredetta === "del") {
+            fraseAttuale = fraseAttuale.slice(0, -1);
+            coloreFeedback = "#ff9100";
+        }
+        else if (letteraPredetta === "canc") {
             fraseAttuale = "";
+            coloreFeedback = "#ff5252";
             const boxSuggerimenti = document.getElementById("suggerimenti-box");
             if (boxSuggerimenti) boxSuggerimenti.innerHTML = "";
         }
+        // Implementazione del tasto enter (inutile, ma semmai)
+        // else if (letteraPredetta === "enter") {
+        //     if (fraseAttuale.trim() !== "") {
+        //         alert("Frase inviata: " + fraseAttuale);
+        //         fraseAttuale = "";
+        //         coloreFeedback = "#00b0ff";
+
+        //         const boxSuggerimenti = document.getElementById("suggerimenti-box");
+        //         if (boxSuggerimenti) boxSuggerimenti.innerHTML = "";
+        //     }
+        // }
         else fraseAttuale += letteraPredetta;
 
         elementoSottotitoli.textContent = (fraseAttuale !== "") ? fraseAttuale : "In Attesa di Segni...";
-
-        if (letteraPredetta === "reset") elementoSottotitoli.parentElement.style.borderColor = "#ff5252";
-        else if (letteraPredetta === "cancella") elementoSottotitoli.parentElement.style.borderColor = "#ff9100";
-        else elementoSottotitoli.parentElement.style.borderColor = "#00e676";
+        elementoSottotitoli.parentElement.style.borderColor = coloreFeedback;
 
         setTimeout(() => {
             elementoSottotitoli.parentElement.style.borderColor = "transparent";
@@ -398,8 +418,10 @@ function gestisciNuovoSegnoPredetto(letteraPredetta, confidenza) {
 
         console.log("Frase aggiornata: ", fraseAttuale);
 
-        const nuoviSuggeerimenti = ottieniSuggerimenti(fraseAttuale);
-        mostraBottoniSuggerimento(nuoviSuggeerimenti);
+        if (fraseAttuale !== "") {
+            const nuoviSuggeerimenti = ottieniSuggerimenti(fraseAttuale);
+            mostraBottoniSuggerimento(nuoviSuggeerimenti);
+        }
     }
 }
 
@@ -534,15 +556,23 @@ window.handTracker = async function () {
     await caricaDizionarioItaliano();
 
     window.addEventListener("keydown", (e) => {
-        //if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+        if (status === "registrazione" && e.key !== "Enter" && e.key !== "Escape") return;
 
         const keyUpper = e.key.toUpperCase();
-        //console.log(keyUpper);
+        let targetFolder = "";
 
         if (alfabeto_it.has(keyUpper)) {
-            if (status === "registrazione") return;
+            targetFolder = keyUpper;
+        } else if (e.key === " ") {
+            targetFolder = "spazio";
+        } else if (e.key === "Backspace") {
+            targetFolder = "del";
+        } else if (e.key === "Delete") {
+            targetFolder = "canc";
+        }
 
-            cartella_dati = keyUpper;
+        if (targetFolder !== "" && status !== "registrazione" && status !== "conferma") {
+            cartella_dati = targetFolder;
             status = "conferma";
 
             if (recordBtn) {
