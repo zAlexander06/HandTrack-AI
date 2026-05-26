@@ -91,7 +91,7 @@
       <div style="text-align:center;margin-bottom:32px;">
         <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.5'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:52px;height:52px;margin:0 auto 12px;display:block;">
         <h2 style="font-family:'Syne',sans-serif;font-size:26px;font-weight:700;margin-bottom:6px;" data-i18n="perm.title">Permessi Necessari</h2>
-        <p class="text-muted text-sm" data-i18n="perm.sub">Fotocamera e tracciamento mano sono necessari per usare HandTrackLIS. Il microfono è facoltativo.</p>
+        <p class="text-muted text-sm" data-i18n="perm.sub">La fotocamera è necessaria per usare HandTrackLIS. Microfono e tracciamento mano sono facoltativi.</p>
       </div>
       <div class="card">
 
@@ -124,14 +124,17 @@
             <button class="toggle" id="btn-mic" onclick="grantPerm('mic')" title="Abilita microfono" aria-label="Abilita microfono"></button>
           </div>
 
-          <!-- TRACCIAMENTO MANO — obbligatorio -->
+          <!-- TRACCIAMENTO MANO — facoltativo -->
           <div class="perm-card" id="perm-hand">
             <div class="perm-icon">
               <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.8'%3E%3Cpath d='M6 9V5a2 2 0 0 1 4 0v4M10 9V4a2 2 0 0 1 4 0v5M14 9V6a2 2 0 0 1 4 0v6a6 6 0 0 1-12 0V9'/%3E%3C/svg%3E" alt="">
             </div>
             <div class="perm-info">
-              <div class="perm-title" data-i18n="perm.handTitle">Tracciamento Mano</div>
-              <div class="perm-desc" data-i18n="perm.handDesc">Abilita il riconoscimento gesti LIS e la generazione di sottotitoli in tempo reale.</div>
+              <div class="perm-title" data-i18n="perm.handTitle">
+                <span>Tracciamento Mano</span>
+                <span style="margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(37,99,235,0.12);color:var(--accent);font-weight:600;vertical-align:middle;">Facoltativo</span>
+              </div>
+              <div class="perm-desc" data-i18n="perm.handDesc">Abilita il riconoscimento gesti LIS e la generazione di sottotitoli in tempo reale. Modificabile in qualsiasi momento dalle impostazioni.</div>
             </div>
             <button class="toggle" id="btn-hand" onclick="grantPerm('hand')" title="Abilita tracciamento" aria-label="Abilita tracciamento"></button>
           </div>
@@ -143,7 +146,7 @@
           <span data-i18n="perm.privacy">Tutta l'elaborazione video avviene localmente nel browser. Nessun dato gestuale viene inviato ai nostri server.</span>
         </div>
         <button class="btn btn-primary w-full" style="justify-content:center;padding:12px;" id="continue-btn" onclick="goTo('page-dashboard')" disabled data-i18n="perm.continueBtn">Continua alla Dashboard</button>
-        <p id="perm-warning" style="text-align:center;font-size:12px;color:var(--red);margin-top:8px;" data-i18n="perm.warning">Fotocamera e tracciamento mano sono obbligatori per continuare.</p>
+        <p id="perm-warning" style="text-align:center;font-size:12px;color:var(--red);margin-top:8px;" data-i18n="perm.warning">La fotocamera è obbligatoria per continuare.</p>
       </div>
     </div>
   </div>
@@ -173,8 +176,19 @@
   justify-content: center;
   z-index: 900;
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  color: var(--text2);
+}
+body.dark #drawer-footer-btn {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 4px 20px rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.4);
+  color: var(--text);
 }
 #drawer-footer-btn:hover { background: var(--bg3); box-shadow: 0 6px 20px rgba(0,0,0,0.22); }
+body.dark #drawer-footer-btn:hover {
+  background: var(--bg3);
+  box-shadow: 0 6px 24px rgba(255,255,255,0.13), 0 2px 10px rgba(0,0,0,0.5);
+}
 #drawer-footer-btn svg { transition: transform 0.35s cubic-bezier(.4,0,.2,1); }
 #drawer-footer-btn.open svg { transform: rotate(180deg); }
 

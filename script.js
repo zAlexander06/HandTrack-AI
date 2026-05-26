@@ -561,8 +561,8 @@ function _revokePerm(type) {
 }
 
 function checkAllPerms() {
-  // Obbligatori: fotocamera + tracciamento mano. Microfono facoltativo.
-  const ready = perms.camera && perms.hand;
+  // Obbligatoria: solo fotocamera. Microfono e tracciamento mano facoltativi.
+  const ready = perms.camera;
   const btn   = document.getElementById('continue-btn');
   const warn  = document.getElementById('perm-warning');
   if (btn) btn.disabled = !ready;
@@ -1763,11 +1763,7 @@ async function endActiveCall() {
 
   activeCallId = null; activeCallPeer = null; callRole = null;
 
-  if (transcript.trim().length > 0) {
-    showTranscriptOverlay(transcript);
-  } else {
-    goTo('page-dashboard');
-  }
+  handlePostCallTranscript(transcript);
 }
 
 // Costruisce la trascrizione dal registro in memoria (non dal DOM)
@@ -1777,14 +1773,29 @@ function collectChatTranscript() {
 
 let _pendingTranscript = '';
 
+/**
+ * Gestisce la trascrizione a fine chiamata.
+ * Se "Salvataggio Automatico" è attivo nelle impostazioni, scarica
+ * direttamente senza mostrare l'overlay di conferma.
+ * Altrimenti mostra l'overlay come di consueto.
+ */
+function handlePostCallTranscript(transcript) {
+  if (!transcript || !transcript.trim()) {
+    goTo('page-dashboard');
+    return;
+  }
+  const s = loadSettings();
+  if (s.autoSave) {
+    // Download immediato — nessun prompt
+    _pendingTranscript = transcript;
+    downloadTranscript();
+  } else {
+    showTranscriptOverlay(transcript);
+  }
+}
+
 function showTranscriptOverlay(transcript) {
   _pendingTranscript = transcript;
-
-  // Leggi formato dalle impostazioni
-  const fmtSel = document.getElementById('export-format-select');
-  const fmt = fmtSel ? fmtSel.value : '.txt';
-  const fmtLabel = document.getElementById('transcript-format-label');
-  if (fmtLabel) fmtLabel.textContent = fmt;
 
   // Mostra anteprima
   const preview = document.getElementById('transcript-preview');
@@ -1810,20 +1821,10 @@ function closeTranscriptOverlay() {
 }
 
 async function downloadTranscript() {
-  const fmtSel = document.getElementById('export-format-select');
-  const fmt = fmtSel ? fmtSel.value : '.txt';
   const text = _pendingTranscript;
   const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `trascrizione-chiamata-${ts}`;
-
-  if (fmt === '.txt') {
-    _downloadBlob(new Blob([text], { type: 'text/plain' }), filename + '.txt');
-  } else if (fmt === '.pdf') {
-    _downloadTranscriptAsPdf(text, filename + '.pdf');
-  } else if (fmt === '.docx') {
-    _downloadTranscriptAsDocx(text, filename + '.docx');
-  }
-
+  _downloadBlob(new Blob([text], { type: 'text/plain' }), filename + '.txt');
   closeTranscriptOverlay();
   showToast('Trascrizione salvata!');
 }
@@ -1833,139 +1834,6 @@ function _downloadBlob(blob, name) {
   const a = document.createElement('a');
   a.href = url; a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
-
-function _downloadTranscriptAsPdf(text, filename) {
-  // PDF minimalista costruito a mano (senza librerie esterne)
-  const lines = text.split('\n');
-  const escPdf = s => s.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
-
-  const pageW = 595, pageH = 842, margin = 50, lineH = 16, fontSize = 10, titleSize = 14;
-  let y = pageH - margin;
-  const contentStreams = [];
-
-  const pushLine = (ln, size) => {
-    if (y < margin + lineH) { contentStreams.push(''); y = pageH - margin; }
-    contentStreams.push(`BT /F1 ${size} Tf ${margin} ${y} Td (${escPdf(ln)}) Tj ET`);
-    y -= lineH + (size > 10 ? 4 : 0);
-  };
-
-  pushLine('Trascrizione Chiamata — HandTrackLIS', titleSize);
-  pushLine(new Date().toLocaleString('it-IT'), fontSize);
-  contentStreams.push(`BT /F1 ${fontSize} Tf ${margin} ${y} Td () Tj ET`); y -= lineH;
-
-  lines.forEach(ln => pushLine(ln.length > 90 ? ln.slice(0, 90) + '…' : ln, fontSize));
-
-  const streamStr = contentStreams.join('\n');
-  const pdf = [
-    '%PDF-1.4',
-    '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj',
-    '2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj',
-    `3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${pageW} ${pageH}]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj`,
-    `4 0 obj<</Length ${streamStr.length}>>\nstream\n${streamStr}\nendstream\nendobj`,
-    '5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj',
-    'xref','0 6','0000000000 65535 f ',
-  ].join('\n');
-
-  _downloadBlob(new Blob([pdf], { type: 'application/pdf' }), filename);
-}
-
-function _downloadTranscriptAsDocx(text, filename) {
-  // DOCX minimalista: XML dentro ZIP (niente dipendenze)
-  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const paras = text.split('\n').map(l =>
-    `<w:p><w:r><w:t xml:space="preserve">${esc(l)}</w:t></w:r></w:p>`
-  ).join('');
-
-  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-<w:body>
-<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>Trascrizione Chiamata — HandTrackLIS</w:t></w:r></w:p>
-<w:p><w:r><w:rPr><w:color w:val="6B7280"/></w:rPr><w:t>${esc(new Date().toLocaleString('it-IT'))}</w:t></w:r></w:p>
-<w:p><w:r><w:t></w:t></w:r></w:p>
-${paras}
-<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr>
-</w:body>
-</w:document>`;
-
-  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`;
-
-  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`;
-
-  // Mini ZIP builder (store, no compression)
-  function strToBytes(str) {
-    const enc = new TextEncoder();
-    return enc.encode(str);
-  }
-  function crc32(bytes) {
-    let c = 0xFFFFFFFF;
-    for (let i = 0; i < bytes.length; i++) {
-      c ^= bytes[i];
-      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-    }
-    return (c ^ 0xFFFFFFFF) >>> 0;
-  }
-  function u16(n) { return [n & 0xFF, (n >> 8) & 0xFF]; }
-  function u32(n) { return [n & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF, (n >> 24) & 0xFF]; }
-
-  const entries = [
-    { name: '_rels/.rels',           data: strToBytes(relsXml) },
-    { name: '[Content_Types].xml',   data: strToBytes(contentTypesXml) },
-    { name: 'word/document.xml',     data: strToBytes(docXml) },
-  ];
-
-  const parts = [];
-  const centralDir = [];
-  let offset = 0;
-
-  entries.forEach(e => {
-    const nameBytes = strToBytes(e.name);
-    const crc = crc32(e.data);
-    const localHeader = [
-      0x50,0x4B,0x03,0x04,
-      ...u16(20),...u16(0),...u16(0),
-      ...u16(0),...u16(0),
-      ...u32(crc),
-      ...u32(e.data.length),...u32(e.data.length),
-      ...u16(nameBytes.length),...u16(0),
-      ...nameBytes,
-    ];
-    const centralEntry = [
-      0x50,0x4B,0x01,0x02,
-      ...u16(20),...u16(20),...u16(0),...u16(0),
-      ...u16(0),...u16(0),
-      ...u32(crc),
-      ...u32(e.data.length),...u32(e.data.length),
-      ...u16(nameBytes.length),...u16(0),...u16(0),...u16(0),...u16(0),
-      ...u32(0),...u32(offset),
-      ...nameBytes,
-    ];
-    parts.push(new Uint8Array(localHeader), e.data);
-    centralDir.push(new Uint8Array(centralEntry));
-    offset += localHeader.length + e.data.length;
-  });
-
-  const cdSize  = centralDir.reduce((s, b) => s + b.length, 0);
-  const eocd = [
-    0x50,0x4B,0x05,0x06,
-    ...u16(0),...u16(0),
-    ...u16(entries.length),...u16(entries.length),
-    ...u32(cdSize),...u32(offset),
-    ...u16(0),
-  ];
-
-  const blob = new Blob([...parts, ...centralDir, new Uint8Array(eocd)],
-    { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-  _downloadBlob(blob, filename);
 }
 
 // ================================================================
@@ -2875,11 +2743,7 @@ async function pollChatMessages() {
     stopChatPoller(); stopCallTimer();
     const transcript = collectChatTranscript();
     activeCallId = null; activeCallPeer = null; callRole = null;
-    if (transcript.trim().length > 0) {
-      showTranscriptOverlay(transcript);
-    } else {
-      goTo('page-dashboard');
-    }
+    handlePostCallTranscript(transcript);
     showToast('La chiamata è stata terminata dall\'altro utente.');
     return;
   }
@@ -2889,7 +2753,7 @@ async function pollChatMessages() {
   if (activeParticipants && activeParticipants.length <= 1) {
     const transcript = collectChatTranscript();
     await endActiveCall();
-    if (transcript.trim().length > 0) showTranscriptOverlay(transcript);
+    handlePostCallTranscript(transcript);
     showToast('La chiamata è terminata (tutti gli altri hanno lasciato).');
     return;
   }
@@ -3393,7 +3257,7 @@ const SETTINGS_KEY = 'htl_settings';
 const DEFAULT_SETTINGS = {
   subtitleSize: '16px', subtitlePos: 'panel', highContrast: false, confidence: false,
   langUI: 'it', langSub: 'it', darkMode: false, animations: true, statusBadge: true,
-  autoSave: true, exportFormat: '.txt', micEnabled: false   // off until explicitly granted
+  autoSave: true, micEnabled: false   // off until explicitly granted
 };
 
 function loadSettings() {
@@ -3424,8 +3288,19 @@ async function _syncMicPermissionToSettings() {
 }
 
 function applySettings(s) {
-  if (s.darkMode) { document.body.classList.add('dark'); const td = document.getElementById('toggle-dark'); if (td) td.classList.add('on'); }
-  else { document.body.classList.remove('dark'); const td = document.getElementById('toggle-dark'); if (td) td.classList.remove('on'); }
+  const footerBtn = document.getElementById('drawer-footer-btn');
+  const footerArrow = document.getElementById('drawer-footer-arr');
+  if (s.darkMode) {
+    document.body.classList.add('dark');
+    const td = document.getElementById('toggle-dark'); if (td) td.classList.add('on');
+    if (footerBtn) footerBtn.style.boxShadow = '0 4px 16px rgba(255, 255, 255, 0.15)';
+    if (footerArrow) footerArrow.setAttribute('stroke', 'white');
+  } else {
+    document.body.classList.remove('dark');
+    const td = document.getElementById('toggle-dark'); if (td) td.classList.remove('on');
+    if (footerBtn) footerBtn.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
+    if (footerArrow) footerArrow.setAttribute('stroke', 'black');
+  }
   if (!s.animations) {
     document.body.style.setProperty('--transition', '0s');
     const loader = document.getElementById('page-loader');
@@ -3448,7 +3323,6 @@ function applySettings(s) {
   _setSelectById('sel-subtitle-pos',  posToOption(s.subtitlePos));
   _setSelectById('sel-lang-ui',       s.langUI === 'en' ? 'English' : 'Italiano');
   _setSelectById('sel-lang-sub',      s.langSub === 'en' ? 'English' : 'Italiano');
-  _setSelectById('sel-export-fmt',    s.exportFormat);
   _syncToggle('toggle-contrast',  s.highContrast);
   _syncToggle('toggle-confidence',s.confidence);
   _syncToggle('toggle-dark',      s.darkMode);
@@ -3477,7 +3351,6 @@ function readSettingsFromUI() {
   const posSel  = document.getElementById('sel-subtitle-pos');
   const langUI  = document.getElementById('sel-lang-ui');
   const langSub = document.getElementById('sel-lang-sub');
-  const expFmt  = document.getElementById('sel-export-fmt');
   return {
     subtitleSize:  sizeSel ? optionToSize(sizeSel.value) : loadSettings().subtitleSize,
     subtitlePos:   posSel  ? optionToPos(posSel.value)   : loadSettings().subtitlePos,
@@ -3490,7 +3363,6 @@ function readSettingsFromUI() {
     statusBadge:   isOn('toggle-status'),
     autoSave:      isOn('toggle-save'),
     micEnabled:    isOn('toggle-mic-enabled'),
-    exportFormat:  expFmt  ? expFmt.value : loadSettings().exportFormat,
   };
 }
 
@@ -3498,7 +3370,19 @@ function toggleBtn(btn) { btn.classList.toggle('on'); const s = readSettingsFrom
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle('dark');
   const td = document.getElementById('toggle-dark');
-  if (td) { if (isDark) td.classList.add('on'); else td.classList.remove('on'); }
+  const footerBtn = document.getElementById('drawer-footer-btn');
+  const footerArrow = document.getElementById('drawer-footer-arr');
+  if (td) {
+    if (isDark) {
+      td.classList.add('on');
+      if (footerBtn) footerBtn.style.boxShadow = '0 4px 16px rgba(255, 255, 255, 0.15)';
+      if (footerArrow) footerArrow.setAttribute('stroke', 'white');
+    } else {
+      td.classList.remove('on');
+      if (footerBtn) footerBtn.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15)';
+      if (footerArrow) footerArrow.setAttribute('stroke', 'black');
+    }
+  }
   const s = loadSettings(); s.darkMode = isDark; persistSettings(s);
 }
 function onToggleMicEnabled(btn) {
@@ -3556,12 +3440,12 @@ const I18N = {
     'login.title': 'Bentornato', 'login.sub': 'Accedi al tuo account HandTrackLIS',
     'login.tab': 'Accedi', 'login.tabSignup': 'Crea Account', 'login.btn': 'Accedi', 'login.btnSignup': 'Crea Account',
     'perm.title': 'Permessi Necessari',
-    'perm.sub': 'HandTrackLIS ha bisogno dell\'accesso a fotocamera, microfono e tracciamento della mano per funzionare.',
+    'perm.sub': 'La fotocamera è necessaria per usare HandTrackLIS. Microfono e tracciamento mano sono facoltativi.',
     'perm.camTitle': 'Accesso Fotocamera', 'perm.camDesc': 'Necessario per videochiamate e rilevamento gesti della mano.', 'perm.camBtn': 'Consenti Fotocamera',
     'perm.micTitle': 'Accesso Microfono', 'perm.micDesc': 'Abilita l\'audio durante le videochiamate.', 'perm.micBtn': 'Consenti Microfono',
-    'perm.handTitle': 'Tracciamento Mano', 'perm.handDesc': 'Abilita il riconoscimento gesti LIS e la generazione di sottotitoli.', 'perm.handBtn': 'Abilita Tracciamento',
+    'perm.handTitle': 'Tracciamento Mano', 'perm.handDesc': 'Abilita il riconoscimento gesti LIS e la generazione di sottotitoli. Modificabile in qualsiasi momento dalle impostazioni.', 'perm.handBtn': 'Abilita Tracciamento',
     'perm.privacy': 'Tutta l\'elaborazione video avviene localmente nel browser. Nessun dato gestuale viene inviato ai nostri server.',
-    'perm.continueBtn': 'Continua alla Dashboard', 'perm.warning': 'Concedi l\'accesso alla telecamera e al tracciamento delle mani per continuare.',
+    'perm.continueBtn': 'Continua alla Dashboard', 'perm.warning': 'Concedi l\'accesso alla telecamera per continuare.',
     'dash.title': 'Contatti', 'dash.sub': 'La tua rete HandTrackLIS',
     'dash.statTotal': 'Contatti Totali', 'dash.statWeek': '+2 questa settimana',
     'dash.statOnline': 'Online Ora', 'dash.statAvail': 'Disponibili per chiamate',
@@ -3642,9 +3526,12 @@ const I18N = {
     'how.pipeModelLabel': 'Modello IA', 'how.pipeModelDesc': 'Classificazione LIS',
     'how.pipeSubDesc': 'Testo in diretta',
     'step.webcam': 'Webcam', 'step.subtitles': 'Sottotitoli',
-    'settings.micTitle': 'Microfono e Dispositivi',
+    'settings.micTitle': 'Permessi',
     'settings.micEnabled': 'Abilita Microfono nelle Chiamate',
     'settings.micEnabledDesc': 'Se attivo, l\'app userà il microfono durante le chiamate. Puoi comunque silenziarlo in qualsiasi momento anche mentre sei in chiamata.',
+    'settings.handTracking': 'Tracciamento Mano',
+    'settings.handTrackingBadge': 'Facoltativo',
+    'settings.handTrackingDesc': 'Abilita il riconoscimento gesti LIS e la generazione di sottotitoli in tempo reale.',
     'form.firstName': 'Nome', 'form.lastName': 'Cognome', 'form.username': 'Username',
     'form.email': 'Indirizzo Email', 'form.confirmEmail': 'Conferma Indirizzo Email',
     'form.password': 'Password', 'form.confirmPassword': 'Conferma Password',
@@ -3704,12 +3591,12 @@ const I18N = {
     'login.title': 'Welcome Back', 'login.sub': 'Sign in to your HandTrackLIS account',
     'login.tab': 'Sign In', 'login.tabSignup': 'Create Account', 'login.btn': 'Sign In', 'login.btnSignup': 'Create Account',
     'perm.title': 'Required Permissions',
-    'perm.sub': 'HandTrackLIS needs access to your camera, microphone and hand tracking to work.',
+    'perm.sub': 'HandTrackLIS needs camera access to work. Microphone and hand tracking are optional.',
     'perm.camTitle': 'Camera Access', 'perm.camDesc': 'Required for video calls and hand gesture detection.', 'perm.camBtn': 'Allow Camera',
     'perm.micTitle': 'Microphone Access', 'perm.micDesc': 'Enables audio during video calls.', 'perm.micBtn': 'Allow Microphone',
-    'perm.handTitle': 'Hand Tracking', 'perm.handDesc': 'Enables LIS gesture recognition and subtitle generation.', 'perm.handBtn': 'Enable Tracking',
+    'perm.handTitle': 'Hand Tracking', 'perm.handDesc': 'Enables LIS gesture recognition and subtitle generation. Can be changed anytime in settings.', 'perm.handBtn': 'Enable Tracking',
     'perm.privacy': 'All video processing happens locally in the browser. No gesture data is sent to our servers.',
-    'perm.continueBtn': 'Continue to Dashboard', 'perm.warning': 'Grant camera access and hand tracking to continue.',
+    'perm.continueBtn': 'Continue to Dashboard', 'perm.warning': 'Camera access is required to continue.',
     'dash.title': 'Contacts', 'dash.sub': 'Your HandTrackLIS network',
     'dash.statTotal': 'Total Contacts', 'dash.statWeek': '+2 this week',
     'dash.statOnline': 'Online Now', 'dash.statAvail': 'Available for calls',
@@ -3790,9 +3677,12 @@ const I18N = {
     'how.pipeModelLabel': 'AI Model', 'how.pipeModelDesc': 'LIS Classification',
     'how.pipeSubDesc': 'Live text',
     'step.webcam': 'Webcam', 'step.subtitles': 'Subtitles',
-    'settings.micTitle': 'Microphone & Devices',
+    'settings.micTitle': 'Permissions',
     'settings.micEnabled': 'Enable Microphone in Calls',
     'settings.micEnabledDesc': 'If enabled, the app will use the microphone during calls. You can still mute it at any time even while in a call.',
+    'settings.handTracking': 'Hand Tracking',
+    'settings.handTrackingBadge': 'Optional',
+    'settings.handTrackingDesc': 'Enables LIS gesture recognition and real-time subtitle generation.',
     'form.firstName': 'First Name', 'form.lastName': 'Last Name', 'form.username': 'Username',
     'form.email': 'Email Address', 'form.confirmEmail': 'Confirm Email Address',
     'form.password': 'Password', 'form.confirmPassword': 'Confirm Password',

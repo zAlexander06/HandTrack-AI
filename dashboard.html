@@ -624,19 +624,12 @@
               <div><div class="settings-label" data-i18n="settings.autoSave">Salvataggio Automatico</div><div class="settings-desc" data-i18n="settings.autoSaveDesc">Al termine di ogni chiamata, il testo dei sottotitoli viene salvato automaticamente sul tuo dispositivo</div></div>
               <button class="toggle on" id="toggle-save" onclick="toggleBtn(this)"></button>
             </div>
-            <div class="settings-row">
-              <div><div class="settings-label" data-i18n="settings.exportFmt">Formato Export</div><div class="settings-desc" data-i18n="settings.exportFmtDesc">Scegli il formato del file quando scarichi i sottotitoli di una chiamata</div></div>
-              <select class="input" style="width:140px;" id="export-format-select">
-                <option selected>.txt</option>
-                <option>.pdf</option>
-                <option>.docx</option>
-              </select>
-            </div>
+
           </div>
           <div class="card mb-4">
             <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8'/%3E%3C/svg%3E" style="width:18px;height:18px;">
-              <span data-i18n="settings.micTitle">Microfono e Dispositivi</span>
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="settings.micTitle">Permessi</span>
             </h3>
             <div class="settings-row">
               <div>
@@ -644,6 +637,16 @@
                 <div class="settings-desc" data-i18n="settings.micEnabledDesc">Se attivo, l'app userà il microfono durante le chiamate. Puoi comunque silenziarlo in qualsiasi momento anche mentre sei in chiamata.</div>
               </div>
               <button class="toggle on" id="toggle-mic-enabled" onclick="onToggleMicEnabled(this)"></button>
+            </div>
+            <div class="settings-row" style="margin-top:12px;">
+              <div>
+                <div class="settings-label" data-i18n="settings.handTracking">
+                  Tracciamento Mano
+                  <span style="margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(37,99,235,0.12);color:var(--accent);font-weight:600;vertical-align:middle;" data-i18n="settings.handTrackingBadge">Facoltativo</span>
+                </div>
+                <div class="settings-desc" data-i18n="settings.handTrackingDesc">Abilita il riconoscimento gesti LIS e la generazione di sottotitoli in tempo reale.</div>
+              </div>
+              <button class="toggle on" id="toggle-hand-tracking" onclick="toggleBtn(this)"></button>
             </div>
           </div>
           <div style="display:flex;gap:12px;">
@@ -1195,7 +1198,7 @@ body.dark .toggle.on { border-color: var(--accent); }
 #sel-subtitle-pos,
 #sel-lang-ui,
 #sel-lang-sub,
-#sel-export-fmt { width: 140px; }
+
 </style>
 <div class="page" id="page-privacy-logged">
   <nav class="topnav">
@@ -1458,8 +1461,19 @@ body.dark .toggle.on { border-color: var(--accent); }
   justify-content: center;
   z-index: 900;
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  color: var(--text2);
+}
+body.dark #drawer-footer-btn {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 4px 20px rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.4);
+  color: var(--text);
 }
 #drawer-footer-btn:hover { background: var(--bg3); box-shadow: 0 6px 20px rgba(0,0,0,0.22); }
+body.dark #drawer-footer-btn:hover {
+  background: var(--bg3);
+  box-shadow: 0 6px 24px rgba(255,255,255,0.13), 0 2px 10px rgba(0,0,0,0.5);
+}
 #drawer-footer-btn svg { transition: transform 0.35s cubic-bezier(.4,0,.2,1); }
 #drawer-footer-btn.open svg { transform: rotate(180deg); }
 
@@ -1555,13 +1569,13 @@ body.dark .toggle.on { border-color: var(--accent); }
         </div>
         HandTrackLIS
       </div>
-      <p class="df-desc">Progetto open-source che unisce la LIS e la comunicazione video in tempo reale tramite IA.</p>
+      <p class="df-desc" data-i18n="footer.desc">Progetto open-source che unisce la LIS e la comunicazione video in tempo reale tramite IA.</p>
     </div>
     <div>
-      <div class="df-col-title">Piattaforma</div>
+      <div class="df-col-title" data-i18n="footer.platform">Piattaforma</div>
       <a class="df-link" onclick="closeDrawerFooter();goTo('page-home')">Home</a>
-      <a class="df-link" onclick="closeDrawerFooter();goTo('page-login')">Registrati</a>
-      <a class="df-link" onclick="closeDrawerFooter();goTo('page-how')">Come Funziona</a>
+      <a class="df-link" onclick="closeDrawerFooter();goTo('page-login')" data-i18n="footer.register">Registrati</a>
+      <a class="df-link" onclick="closeDrawerFooter();goTo('page-how')" data-i18n="nav.how">Come Funziona</a>
     </div>
     <div>
       <div class="df-col-title">
@@ -1580,15 +1594,15 @@ body.dark .toggle.on { border-color: var(--accent); }
       <a class="df-link" href="https://instagram.com/handtracklis" target="_blank" rel="noopener">Instagram</a>
     </div>
     <div>
-      <div class="df-col-title">
+      <div class="df-col-title" data-i18n="footer.location">
         <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' style='opacity:0.5' stroke-width='2'%3E%3Cpath d='M12 21s-8-7.5-8-12a8 8 0 1 1 16 0c0 4.5-8 12-8 12z'/%3E%3Ccircle cx='12' cy='9' r='3'/%3E%3C/svg%3E" style="width:12px;height:12px;" alt="">
         Sede
       </div>
-      <span class="df-link" style="cursor:default;">Genova, Italia</span>
-      <span class="df-link" style="cursor:default;font-size:11px;opacity:0.7;">Progetto Scolastico 2026</span>
+      <span class="df-link" style="cursor:default;" data-i18n="footer.city">Genova, Italia</span>
+      <span class="df-link" style="cursor:default;font-size:11px;opacity:0.7;" data-i18n="footer.schoolProject2">Progetto Scolastico</span>
     </div>
   </div>
-  <div class="df-bottom">2026 HandTrackLIS — Progetto Scolastico</div>
+  <div class="df-bottom" data-i18n="footer.schoolProject">2026 HandTrackLIS — Progetto Scolastico</div>
 </div>
 
 <!-- ================================================================ SAVE TRANSCRIPT OVERLAY ================================================================ -->
@@ -1608,12 +1622,6 @@ body.dark .toggle.on { border-color: var(--accent); }
     <!-- Chat preview -->
     <div id="transcript-preview" style="margin:18px 0 14px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:180px;overflow-y:auto;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;font-family:'DM Sans',sans-serif;"></div>
 
-    <!-- Format info -->
-    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:10px;margin-bottom:20px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-      <span style="font-size:12px;color:var(--text2);">Formato: <strong id="transcript-format-label" style="color:var(--text);">.txt</strong> — cambiabile in <a onclick="closeTranscriptOverlay();goTo('page-settings')" style="color:var(--accent);cursor:pointer;text-decoration:underline;">Impostazioni</a></span>
-    </div>
-
     <!-- Buttons -->
     <div style="display:flex;gap:10px;">
       <button class="btn w-full" onclick="closeTranscriptOverlay()" style="justify-content:center;padding:11px;border-radius:11px;font-weight:600;gap:6px;border:1px solid var(--border);">
@@ -1630,7 +1638,7 @@ body.dark .toggle.on { border-color: var(--accent); }
 
 <!-- Toggle button -->
 <button id="drawer-footer-btn" onclick="toggleDrawerFooter()" title="Apri footer" aria-label="Apri footer">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+  <svg id="drawer-footer-arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
     <polyline points="18 15 12 9 6 15"></polyline>
   </svg>
 </button>
