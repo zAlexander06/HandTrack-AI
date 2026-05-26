@@ -549,14 +549,16 @@ window.handTracker = async function () {
     const btnResetFrase = document.getElementById("clearBtn");
     const container_sottotitoli = document.getElementById("container-sottotitoli");
 
+    await caricaDizionarioItaliano();
     await verifica_server();
     await carica_modello_ia();
     await initMediaPipe();
     window.startCamera(video);
-    await caricaDizionarioItaliano();
 
     window.addEventListener("keydown", (e) => {
         if (status === "registrazione" && e.key !== "Enter" && e.key !== "Escape") return;
+
+        console.log(e.key);
 
         const keyUpper = e.key.toUpperCase();
         let targetFolder = "";
