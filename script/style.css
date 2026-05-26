@@ -74,6 +74,12 @@ video {
     display: none !important;
 }
 
+#sottotitoli-testo {
+    max-width: 100%;
+    overflow: clip;
+    text-overflow: ellipsis;
+}
+
 .container-controls {
     position: fixed;
     bottom: 25px;

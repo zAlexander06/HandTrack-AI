@@ -30,11 +30,13 @@ def get_classi_dataset():
         print(f"Dataset non trovato: {dataset_dir}")
         return []
 
-    return sorted([
+    classi =  sorted([
         nome
         for nome in os.listdir(dataset_dir)
         if os.path.isdir(os.path.join(dataset_dir, nome))
     ])
+
+    return classi
 
 def carica_dataset(classi_consentite):
     x_data = []
@@ -151,7 +153,7 @@ def carica_addestra_modello():
         print("Nessuna classe trovata")
         return
 
-    print("\nClassi trovate:\n" + classi_consentite)
+    print("\nClassi trovate:\n" + str(classi_consentite))
     x, y_labels = carica_dataset(classi_consentite)
 
     if len(x) == 0:

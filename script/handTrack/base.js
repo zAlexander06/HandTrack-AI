@@ -49,8 +49,14 @@ let label = [];
 // parte dei sottotitoli
 let fraseAttuale = "";
 let ultimaLetteraRiconosciuta = "";
+let ultima_frase_suggerita = "";
+let cover_transform_cache = null;
+let cover_transform_dirty = true;
+let suggerimenti_in_coda = false;
+let ultimi_suggerimenti_renderizzati = "";
 let contatoreStabilita = 0;
 const soglia_stabilita = 12;
+
 
 async function initMediaPipe() {
     const vision = await FilesetResolver.forVisionTasks(
@@ -369,6 +375,20 @@ function ditaAlzate(landmarks, handedness) {
 }
 
 // Sottotitoli per le mani
+function scheduleSuggerimenti(frase) {
+    if (suggerimenti_in_coda) return;
+    suggerimenti_in_coda = true;
+
+    const callback = () => {
+        suggerimenti_in_coda = false;
+        const nuovi = ottieniSuggerimenti(frase);
+        mostraBottoniSuggerimento(nuovi);
+    };
+
+    if ("requestIdleCallback" in window) requestIdleCallback(callback, { timeout: 150 });
+    else setTimeout(callback, 0);
+}
+
 function gestisciNuovoSegnoPredetto(letteraPredetta, confidenza) {
     const elementoSottotitoli = document.getElementById("sottotitoli-testo");
     if (!elementoSottotitoli) return;
@@ -384,6 +404,7 @@ function gestisciNuovoSegnoPredetto(letteraPredetta, confidenza) {
     else {
         ultimaLetteraRiconosciuta = letteraPredetta;
         contatoreStabilita = 0;
+        return;
     }
 
     if (contatoreStabilita === soglia_stabilita) {
@@ -422,9 +443,9 @@ function gestisciNuovoSegnoPredetto(letteraPredetta, confidenza) {
 
         console.log("Frase aggiornata: ", fraseAttuale);
 
-        if (fraseAttuale !== "") {
-            const nuoviSuggeerimenti = ottieniSuggerimenti(fraseAttuale);
-            mostraBottoniSuggerimento(nuoviSuggeerimenti);
+        if (fraseAttuale !== "" && fraseAttuale !== ultima_frase_suggerita) {
+            ultima_frase_suggerita = fraseAttuale;
+            scheduleSuggerimenti(fraseAttuale);
         }
     }
 }
@@ -433,25 +454,31 @@ function mostraBottoniSuggerimento(suggerimenti) {
     const box = document.getElementById("suggerimenti-box");
     if (!box) return;
 
-    box.innerHTML = "";
+    const chiave = suggerimenti.join("|");
+    if (chiave === ultimi_suggerimenti_renderizzati) return;
+    ultimi_suggerimenti_renderizzati = chiave;
 
+    const frammento = document.createDocumentFragment();
     suggerimenti.forEach(parola => {
-        const btnParola = document.createElement("button");
-        btnParola.textContent = parola;
+        const btn = document.createElement("button");
 
-        btnParola.classList.add("suggeriti-box");
+        btn.textContent = parola;
+        btn.classList.add("suggeriti-box");
 
-        btnParola.addEventListener("click", () => {
+        btn.addEventListener("click", () => {
             const parole = fraseAttuale.trim().split(" ");
             parole[parole.length - 1] = parola;
             fraseAttuale = parole.join(" ") + " ";
-
             document.getElementById("sottotitoli-testo").textContent = fraseAttuale;
             box.innerHTML = "";
+            ultimi_suggerimenti_renderizzati = "";
         });
 
-        box.appendChild(btnParola);
+        frammento.appendChild(btn);
     });
+
+    box.innerHTML = "";
+    box.appendChild(frammento);
 }
 
 // Loop principale
@@ -751,6 +778,7 @@ const resizeObserver = new ResizeObserver(() => {
     if (!canvas) return;
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
+    cover_transform_dirty = true;
 });
 resizeObserver.observe(document.getElementById("draw_canvas"));
 
