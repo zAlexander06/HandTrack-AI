@@ -9,16 +9,20 @@ const n_landmarks = 21;
 const DETECT_OGNI = 2;
 const model_url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task";
 
-const alfabeto_it = new Set([
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
-]);
-
 export const etichette_modello = [
     "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
     "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
     "spazio", "del", "canc"
 ];
+
+const alfabeto_it = new Set(etichette_modello.filter(e => e.length === 1));
+
+const tasti_speciali = {
+    " ": 'spazio',
+    "Backspace": "del",
+    "Delete": "canc"
+}
+
 
 // Variabili globali
 let handLandmarker = null;
@@ -534,7 +538,7 @@ async function loop_handTracker() {
     ultimo_frame_time = now;
 
     topbar_canvas(canvas, ctx, ditaTot, ultimo_fps, status, cartella_dati, csv_counter, !!ia_model);
-    if (status === "conferma") conferma_overlay_canvas(canvas, ctx, cartella_dati, csv_counter);
+    if (status === "conferma") conferma_overlay_canvas(canvas, ctx, cartella_dati, csv_counter, getServer());
 
     requestAnimationFrame(loop_handTracker);
 }
@@ -556,24 +560,24 @@ window.handTracker = async function () {
     window.startCamera(video);
 
     window.addEventListener("keydown", (e) => {
-        if (status === "registrazione" && e.key !== "Enter" && e.key !== "Escape") return;
+        if (status === "registrazione" && e.key !== "Escape") return;
 
-        console.log(e.key);
+        console.log("Tasto premuto:", e.key, " | Codice:", e.code);
 
-        const keyUpper = e.key.toUpperCase();
+        if (e.key === " " & e.key === "Enter") e.preventDefault();
+
+        const keyUpper = e.key.trim().toUpperCase();
         let targetFolder = "";
 
-        if (alfabeto_it.has(keyUpper)) {
-            targetFolder = keyUpper;
-        } else if (e.key === " ") {
-            targetFolder = "spazio";
-        } else if (e.key === "Backspace") {
-            targetFolder = "del";
-        } else if (e.key === "Delete") {
-            targetFolder = "canc";
-        }
+        console.log("Upper:", keyUpper);
+        console.log("Esiste nel set?", alfabeto_it.has(keyUpper));
 
-        if (targetFolder !== "" && status !== "registrazione" && status !== "conferma") {
+        if (alfabeto_it.has(keyUpper)) targetFolder = keyUpper;
+        else if (tasti_speciali[e.key]) targetFolder = tasti_speciali[e.key];
+
+        if (targetFolder && (status === "fermo" || status === "conferma")) {
+            console.log("Cambio stato UI");
+
             cartella_dati = targetFolder;
             status = "conferma";
 
@@ -589,19 +593,21 @@ window.handTracker = async function () {
                 if (status === "conferma") startRecording();
                 else if (status === "registrazione") stopRecording();
                 break;
+
             case "Escape":
                 if (status === "conferma" || status === "registrazione") {
                     if (status === "registrazione") stopRecording();
+
                     status = "fermo";
                     cartella_dati = "";
+
                     if (recordBtn) {
                         recordBtn.textContent = "Avvia Registrazione";
                         recordBtn.style.backgroundColor = "";
                     }
                 }
-                btnTraining.classList.remove("hide");
-                btnResetFrase.classList.remove("hide");
-                container_sottotitoli.classList.remove("hide");
+
+                mostra_ui_principale();
                 break;
         }
     });
@@ -616,88 +622,73 @@ window.handTracker = async function () {
     });
 
     recordBtn?.addEventListener("click", () => {
-        btnTraining.classList.add("hide");
-        btnResetFrase.classList.add("hide");
-        container_sottotitoli.classList.add("hide");
+        nascondi_ui_principale();
 
         if (status === "fermo") {
             cartella_dati = cartella_dati || (isServerConnesso() ? "Segni" : "Download");
-
             status = "conferma";
-            recordBtn.textContent = "Conferma (Enter) / Annulla (Esc)";
-            recordBtn.classList.add("btn-confirm");
+
+            if (recordBtn) {
+                recordBtn.textContent = "Conferma (Enter) / Annulla (Esc)";
+                recordBtn.classList.add("btn-confirm");
+            }
         }
         else if (status === "conferma") {
             startRecording();
         }
         else if (status === "registrazione") {
             stopRecording();
-            btnTraining.classList.remove("hide");
-            btnResetFrase.classList.remove("hide");
-            container_sottotitoli.classList.remove("hide");
+            mostra_ui_principale();
         }
     });
 
     // bottone per il training
     btnTraining?.addEventListener("click", async () => {
-        const btn = btnTraining;
+        if (!confirm("Avviare l'addestramento con i dati salvati?")) return;
 
-        if (!confirm("L'addestramento userà i dati salvati nelle cartelle. Continuare?")) return;
-
-        btn.disabled = true;
-        btn.textContent = "Addestramento in corso...";
-        btn.style.cursor = "not-allowed";
+        btnTraining.disabled = true;
+        btnTraining.textContent = "Addestramento in corso...";
+        btnTraining.style.cursor = "not-allowed";
 
         try {
-            const url_server = `${getServer()}/train`;
-            const res = await fetch(url_server, { method: "POST" });
+            const res = await fetch(`${getServer()}/train`, { method: "POST" });
 
-            if (res.ok) {
-                console.log("Training avviato sul server...");
-
-                const intervallo = setInterval(async () => {
-                    try {
-                        const url_status_train = `${getServer()}/status-train`;
-                        const statusRes = await fetch(url_status_train);
-
-                        if (statusRes.ok) {
-                            const stato = await statusRes.text();
-
-                            if (stato.trim() === "Completato") {
-                                clearInterval(intervallo);
-
-                                alert("Modello '.onnx' aggiornato e generato con successo\nVerrà ricaricata la pagina per apportare le modifiche");
-                                window.location.reload();
-                            }
-                        }
-                        else {
-                            clearInterval(intervallo);
-
-                            const messaggioErrore = await statusRes.text();
-                            alert(`${messaggioErrore}\nAttendere prego!`);
-
-                            btn.disabled = false;
-                            btn.textContent = "Allena Modello IA";
-                            btn.style.cursor = "pointer";
-                        }
-                    }
-                    catch (err) {
-                        console.error("Errore durante il controllo dello stato: ", err);
-                        clearInterval(intervallo);
-                    }
-                }, 3000);
-                alert("Il server ha avviato Python. Controlla la console del server per i progressi.");
-            } else {
+            if (!res.ok) {
                 alert("Errore nell'avvio dell'addestramento.");
-                btn.disabled = false;
-                btn.textContent = "Allena Modello IA";
-                btn.style.cursor = "pointer";
+                ripristina_btn_training();
+                return;
             }
+
+            console.log("[Training] Avviato - polling ogni 3s");
+
+            const intervallo = setInterval(async () => {
+                try {
+                    const statusRes = await fetch(`${getServer()}/status-train`);
+
+                    if (statusRes.ok) {
+                        const stato = await statusRes.text();
+
+                        if (stato.trim() === "Completato") {
+                            clearInterval(intervallo);
+                            alert("Modello aggiornato - la pagina verrà ricaricata");
+                            window.location.reload();
+                        }
+                    } else {
+                        clearInterval(intervallo);
+                        const msg = await statusRes.text();
+                        alert(`Errore training: ${msg}`);
+                        ripristina_btn_training();
+                    }
+                } catch (err) {
+                    console.error("[Training] Errore polling:", err);
+                    clearInterval(intervallo);
+                    ripristina_btn_training();
+                }
+            }, 3000);
+
         } catch (e) {
-            alert("Impossibile connettersi al server per avviare l'addestramento.");
-            btn.disabled = false;
-            btn.textContent = "Allena Modello IA";
-            btn.style.cursor = "pointer";
+            alert("Impossibile connettersi al server.");
+            ripristina_btn_training();
         }
     });
 
@@ -711,7 +702,25 @@ window.handTracker = async function () {
 
         const boxSuggerimenti = document.getElementById("suggerimenti-box");
         if (boxSuggerimenti) boxSuggerimenti.innerHTML = "";
-    })
+    });
+
+    function nascondi_ui_principale() {
+        btnTraining.classList.add("hide");
+        btnResetFrase.classList.add("hide");
+        container_sottotitoli.classList.add("hide");
+    }
+
+    function mostra_ui_principale() {
+        btnTraining.classList.remove("hide");
+        btnResetFrase.classList.remove("hide");
+        container_sottotitoli.classList.remove("hide");
+    }
+
+    function ripristina_btn_training() {
+        btnTraining.disabled = false;
+        btnTraining.textContent = "Allena Modello IA";
+        btnTraining.style.cursor = "pointer";
+    }
 
     function startRecording() {
         csv_row = [];
