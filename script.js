@@ -3,6 +3,37 @@
 // Backend: PHP + MySQL (phpMyAdmin) — niente Supabase
 // ================================================================
 
+// ── Chat panel toggle during active call ─────────────────────────
+let _chatPanelOpen = true;
+function toggleCallChat() {
+  const panel = document.querySelector('.call-chat-panel');
+  const floatBtn = document.getElementById('btn-open-chat-float');
+  const collapseIcon = document.getElementById('icon-chat-collapse');
+  if (!panel) return;
+
+  _chatPanelOpen = !_chatPanelOpen;
+
+  if (_chatPanelOpen) {
+    panel.classList.remove('chat-collapsed');
+    if (floatBtn) floatBtn.style.display = 'none';
+    if (collapseIcon) {
+      // Arrow pointing right = collapse →
+      collapseIcon.setAttribute('points', '9 18 15 12 9 6'); // chevron-right ›
+    }
+    const toggleBtn = document.getElementById('btn-toggle-chat');
+    if (toggleBtn) toggleBtn.title = 'Nascondi chat';
+  } else {
+    panel.classList.add('chat-collapsed');
+    if (floatBtn) floatBtn.style.display = 'flex';
+    if (collapseIcon) {
+      // Arrow pointing left = expand ‹
+      collapseIcon.setAttribute('points', '15 18 9 12 15 6'); // chevron-left ‹
+    }
+    const toggleBtn = document.getElementById('btn-toggle-chat');
+    if (toggleBtn) toggleBtn.title = 'Mostra chat';
+  }
+}
+
 // Base URL delle API PHP (modifica se il progetto è in una sottocartella)
 const API = {
   login:         'api/login.php',
@@ -394,6 +425,9 @@ function stopHeartbeat() {
 
 async function _sendHeartbeat() {
   if (!currentUser?.id) return;
+  // Se "Mostra Stato Online" è disattivato, non inviare il ping:
+  // il backend considererà l'utente offline dopo ~40 s di silenzio.
+  if (!isStatusBadgeEnabled()) return;
   try {
     await apiPost(API.user, { action: 'heartbeat' }); // ID letto dalla sessione PHP
   } catch {
@@ -413,6 +447,20 @@ function _onPageHide() {
   // usiamo application/json con blob — il backend lo gestisce
   const blob = new Blob([JSON.stringify({ action: 'heartbeat' })], { type: 'application/json' });
   navigator.sendBeacon(API.user + '?beacon=1', blob);
+
+  // Se l'utente era in chiamata attiva o in sala d'attesa, termina/annulla la chiamata
+  // via sendBeacon (fire-and-forget, unico metodo affidabile durante pagehide/unload)
+  // e setta un flag in sessionStorage per gestire il redirect al reload.
+  const currentPage = sessionStorage.getItem('htl_current_page');
+  if (currentPage === 'page-call' && activeCallId) {
+    const callBlob = new Blob([JSON.stringify({ action: 'end', call_id: activeCallId })], { type: 'application/json' });
+    navigator.sendBeacon(API.calls + '?beacon=1', callBlob);
+    sessionStorage.setItem('htl_interrupted_call', 'ended');
+  } else if (currentPage === 'page-waiting' && outgoingCallId) {
+    const callBlob = new Blob([JSON.stringify({ action: 'cancel', call_id: outgoingCallId })], { type: 'application/json' });
+    navigator.sendBeacon(API.calls + '?beacon=1', callBlob);
+    sessionStorage.setItem('htl_interrupted_call', 'cancelled');
+  }
 }
 
 // ================================================================
@@ -1745,24 +1793,55 @@ async function enterCall(callId, peer, role) {
 
   // Avvia WebRTC dopo aver mostrato la pagina
   startWebRTC(callId, role);
+
+  // Avvia tracciamento mano LIS solo se l'utente ha dato il permesso nelle impostazioni
+  const webcamEl = document.getElementById('webcam');
+  const subStrip = document.getElementById('container-sottotitoli');
+  if (isHandTrackingEnabled()) {
+    if (webcamEl && localStream) webcamEl.srcObject = localStream;
+    if (window.handTracker) window.handTracker();
+    if (subStrip) subStrip.style.display = '';
+  } else {
+    // Tracciamento disabilitato: nascondi la strip sottotitoli e ferma il tracker
+    if (subStrip) subStrip.style.display = 'none';
+    if (webcamEl) webcamEl.srcObject = null;
+    if (window.stopHandTracker) window.stopHandTracker();
+  }
+
+  window.onSubtitleUpdate = (frase) => {
+    Object.values(peerConnections).forEach(({ sendChannel }) => {
+        if (sendChannel?.readyState === 'open') sendChannel.send(frase);
+    });
+  };
 }
 
 async function endActiveCall() {
+  if (window.stopHandTracker) window.stopHandTracker();
   clearInterval(callStatusPollInterval);
   stopChatPoller();
   stopCallTimer();
-  stopWebRTC(); // ferma stream e PeerConnection
-  selfTileExitGrid(); // rimuovi self dal grid se presente
 
-  if (activeCallId) {
-    await apiPost(API.calls, { action: 'end', call_id: activeCallId });
+  // Save callId BEFORE stopWebRTC nulls activeCallId
+  const callIdToEnd = activeCallId;  // ← ADD THIS
+
+  stopWebRTC();
+  selfTileExitGrid();
+
+  const subTesto = document.getElementById('sottotitoli-testo');
+  if (subTesto) subTesto.textContent = 'In attesa di segni…';
+  const subStrip = document.getElementById('container-sottotitoli');
+  if (subStrip) subStrip.style.display = '';
+  document.querySelectorAll('[id^="sub-remote-"]').forEach(el => {
+    el.textContent = '';
+    el.style.opacity = '0';
+  });
+
+  if (callIdToEnd) {  // ← USE callIdToEnd instead of activeCallId
+    await apiPost(API.calls, { action: 'end', call_id: callIdToEnd });
   }
 
-  // Raccogli la trascrizione chat prima di azzerare lo stato
   const transcript = collectChatTranscript();
-
-  activeCallId = null; activeCallPeer = null; callRole = null;
-
+  activeCallId = null; activeCallPeer = null; callRole = null;  // ← null here, after the post
   handlePostCallTranscript(transcript);
 }
 
@@ -1908,11 +1987,46 @@ function _ensureRemoteTile(peerId) {
     <video id="video-remote-${peerId}" autoplay playsinline
       style="width:100%;height:100%;object-fit:cover;background:#0d1117;display:none;"></video>
     <div id="card-remote-${peerId}" class="call-remote-card" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <div id="av-remote-${peerId}" class="avatar" style="width:72px;height:72px;font-size:26px;background:${color};box-shadow:0 0 0 4px rgba(255,255,255,0.08);">${init}</div>
-      <div id="name-remote-${peerId}" style="font-size:15px;font-weight:700;color:#e2e8f0;margin-top:12px;font-family:'Syne',sans-serif;">${escapeHtml(name)}</div>
+      <div id="av-remote-${peerId}" class="avatar" style="
+          width:72px;
+          height:72px;
+          font-size:26px;
+          background:${color};
+          box-shadow:0 0 0 4px rgba(255,255,255,0.08);
+      ">${init}</div>
+      <div id="name-remote-${peerId}" style="
+          font-size:15px;
+          font-weight:700;
+          color:#e2e8f0;
+          margin-top:12px;
+          font-family:'Syne',sans-serif;
+      ">${escapeHtml(name)}</div>
     </div>
-    <div id="label-remote-${peerId}" style="position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10px;padding:2px 6px;background:rgba(0,0,0,0.55);color:#e2e8f0;pointer-events:none;">${escapeHtml(name)}</div>`;
+    <div id="label-remote-${peerId}" style="
+        position:absolute;
+        bottom:6px;
+        left:0;
+        right:0;
+        text-align:center;
+        font-size:10px;
+        padding:2px 6px;
+        background:rgba(0,0,0,0.55);
+        color:#e2e8f0;
+        pointer-events:none;
+    ">${escapeHtml(name)}</div>
+    <div id="sub-remote-${peerId}" style="
+        position:absolute;
+        left:0;
+        right:0;
+        text-align:center;
+        opacity:0;
+        color:white;
+        transition: opacity 0.2s;
+        pointer-events:none;
+    "></div>`;
   grid.appendChild(tile);
+  const subEl = document.getElementById('sub-remote-' + peerId);
+  _applySubtitleSettings(subEl, loadSettings());
   _updateGridLayout();
   return document.getElementById('video-remote-' + peerId);
 }
@@ -1948,6 +2062,42 @@ function _updateGridLayout() {
       v.style.aspectRatio = '';
     }
   });
+}
+
+function _applySubtitleSettings(el, s) {
+  if (!el) return;
+  s = s || loadSettings();
+
+  // ── Font size ─────────────────────────────────────────────────
+  // Driven by the "Dimensione Sottotitoli" select (12/16/20/24px)
+  el.style.fontSize = s.subtitleSize || '16px';
+
+  // ── Background / padding ──────────────────────────────────────
+  if (s.highContrast) {
+    // "Alto Contrasto" ON
+    el.style.background   = 'rgba(0,0,0,0.75)';  // ← darken/lighten here
+    el.style.borderRadius = '6px';                // ← pill vs square
+    el.style.padding      = '8px 12px';           // ← more breathing room
+  } else {
+    // normal
+    el.style.background   = 'rgba(0,0,0,0.65)';  // ← default bg opacity
+    el.style.borderRadius = '0 0 6px 6px';        // ← flat top, rounded bottom
+    el.style.padding      = '4px 12px';           // ← tighter padding
+  }
+
+  // ── Position ──────────────────────────────────────────────────
+  if (s.subtitlePos === 'overlay') {
+    // "Sovrapposto" — vertically centred in the tile
+    el.style.bottom    = '';
+    el.style.top       = '75%';
+    el.style.transform = 'translateY(-50%)';
+  } else {
+    el.style.top       = '';
+    el.style.transform = '';
+    if(s.subtitlePos === 'bottom'){
+      el.style.bottom = '48px';
+    }
+  }
 }
 
 // ── Crea una RTCPeerConnection verso un peer specifico ────────────
@@ -2038,7 +2188,38 @@ function _createPeerConnection(peerId, callId) {
     // 'disconnected' è transitorio (es. cambio di rete, rinegoziazione) — non rimuovere
   };
 
+  // Crea canale per LIS (invio)
+  const ownCh = pc.createDataChannel('subtitles');
+  peerConnections[peerId].sendChannel = ownCh;
+
+  // Ricevi canale sottotitoli dall'altro peer
+  pc.ondatachannel = ({ channel }) => {
+      if (channel.label !== 'subtitles') return;
+      channel.onmessage = ({ data }) => showRemoteSubtitle(peerId, data);
+  };
+
   return pc;
+}
+
+function showRemoteSubtitle(peerId, text) {
+    const el = document.getElementById('sub-remote-' + peerId);
+    if (!el) return;
+    el.textContent = text;
+    el.style.opacity = text ? '1' : '0';
+}
+
+async function sendChatMessageDirect(content) {
+    if (!content?.trim() || !activeCallId || !currentUser?.id) return;
+    const bannedWords = await getBannedWords();
+    if (containsBannedWord(content, bannedWords)) {
+        showToast('⚠️ Messaggio non inviato: contiene una parola non consentita.');
+        return;
+    }
+    await apiPost(API.messages, {
+        receiver_id: activeCallPeer?.id || null,
+        call_id: activeCallId,
+        content: content.trim(),
+    });
 }
 
 // ── Avvia WebRTC (ingresso in chiamata) ───────────────────────────
@@ -2260,8 +2441,20 @@ async function pollSignals(callId) {
         if (labelEl) labelEl.textContent = newPeerName;
         if (avEl)    { avEl.textContent = newPeerInitials; avEl.style.background = avatarColor(newPeerId); }
 
-        if (currentUser.id > newPeerId && !peerConnections[newPeerId]) {
-          connectToNewPeer(newPeerId, callId);
+        if (currentUser.id > newPeerId) {
+          const existingPc = peerConnections[newPeerId]?.pc;
+          const isStale = !existingPc ||
+            existingPc.connectionState === 'closed' ||
+            existingPc.connectionState === 'failed' ||
+            existingPc.signalingState  === 'closed';
+          if (isStale) {
+            // Clean up the stale entry before reconnecting
+            if (existingPc) {
+              try { existingPc.close(); } catch(_) {}
+              delete peerConnections[newPeerId];
+            }
+            connectToNewPeer(newPeerId, callId);
+          }
         } else if (currentUser.id < newPeerId) {
           console.log('[WebRTC] presence da', newPeerId, '— aspetto offer (ha ID più alto)');
         }
@@ -2321,6 +2514,10 @@ function _guessSenderFromOffer(payload) {
 function stopWebRTC() {
   clearInterval(signalPollTimer);
   signalPollTimer = null;
+  lastSignalSeq = 0;
+
+  // clear participant map for next call
+  Object.keys(callParticipantsMap).forEach(k => delete callParticipantsMap[k]); // ← ADD
 
   if (waitingPreviewStream) {
     waitingPreviewStream.getTracks().forEach(t => t.stop());
@@ -2369,7 +2566,7 @@ async function pollCallInvites() {
     unread:  '1',
   });
 
-  //console.log('[invite] GET notifications →', { ok, status, data });
+  console.log('[invite] GET notifications →', { ok, status, data });
 
   if (!ok) {
     console.log('[invite] exit: ok=false');
@@ -2378,7 +2575,7 @@ async function pollCallInvites() {
   }
 
   if (!data?.notifications?.length) {
-    //console.log('[invite] exit: notifications vuoto o assente', data);
+    console.log('[invite] exit: notifications vuoto o assente', data);
     if (pendingCallInvite) hideCallInviteOverlay();
     return;
   }
@@ -2737,26 +2934,39 @@ function stopChatPoller()  { clearInterval(chatPollInterval); }
 async function pollChatMessages() {
   if (!activeCallId || !currentUser?.id) return;
 
-  // Controlla se l'altra parte ha chiuso la chiamata
+  // Check if the call was ended server-side
   const { data: callRow } = await apiGet(API.calls, { action: 'status', call_id: activeCallId });
   if (callRow && callRow.status_call === 'ended') {
-    stopChatPoller(); stopCallTimer();
+    stopChatPoller();
+    stopCallTimer();
+    stopWebRTC();
+    selfTileExitGrid();
+    if (window.stopHandTracker) window.stopHandTracker();
     const transcript = collectChatTranscript();
+    const cid = activeCallId;
     activeCallId = null; activeCallPeer = null; callRole = null;
-    handlePostCallTranscript(transcript);
     showToast('La chiamata è stata terminata dall\'altro utente.');
+    handlePostCallTranscript(transcript);
     return;
   }
 
-  // Controlla partecipanti attivi — rileva nuovi arrivati e avvia WebRTC verso di loro
+  // Check if we're the only one left
   const { data: activeParticipants } = await apiGet(API.calls, { action: 'active_participants', call_id: activeCallId });
   if (activeParticipants && activeParticipants.length <= 1) {
+    stopChatPoller();
+    stopCallTimer();
+    stopWebRTC();
+    selfTileExitGrid();
+    if (window.stopHandTracker) window.stopHandTracker();
     const transcript = collectChatTranscript();
-    await endActiveCall();
-    handlePostCallTranscript(transcript);
+    const cid = activeCallId;
+    activeCallId = null; activeCallPeer = null; callRole = null;
+    await apiPost(API.calls, { action: 'end', call_id: cid });
     showToast('La chiamata è terminata (tutti gli altri hanno lasciato).');
+    handlePostCallTranscript(transcript);
     return;
   }
+
   if (activeParticipants) {
     // Rileva chi è uscito: chiudi PC e rimuovi tile per i peer non più presenti
     const activePidSet = new Set(activeParticipants.map(p => parseInt(p.user_id)));
@@ -3222,14 +3432,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     startNotificationPoller();
     startAccountValidityCheck();
     startHeartbeat();
+
+    // Se la pagina è stata ricaricata durante una chiamata o sala d'attesa,
+    // reindirizza alla dashboard e mostra un toast informativo.
+    const interruptedCall = sessionStorage.getItem('htl_interrupted_call');
+    if (interruptedCall) {
+      sessionStorage.removeItem('htl_interrupted_call');
+      goTo('page-dashboard');
+      const msg = interruptedCall === 'cancelled'
+        ? 'Chiamata annullata (pagina ricaricata).'
+        : 'Chiamata terminata (pagina ricaricata).';
+      setTimeout(() => showToast(msg), 400);
     // Se arrivo dall'Admin Panel con una destinazione specifica, usala
-    const gotoPage = sessionStorage.getItem('htl_goto');
-    if (gotoPage) {
+    } else if (sessionStorage.getItem('htl_goto')) {
+      const gotoPage = sessionStorage.getItem('htl_goto');
       sessionStorage.removeItem('htl_goto');
       goTo(gotoPage);
     } else {
-      // Ripristina la pagina in cui si trovava l'utente, altrimenti vai alla dashboard
-      const pageToRestore = (savedPage && document.getElementById(savedPage)) ? savedPage : 'page-dashboard';
+      // Ripristina la pagina in cui si trovava l'utente, ma mai page-call/page-waiting
+      // perché senza stato WebRTC sarebbero schermate rotte.
+      const callPages = new Set(['page-call', 'page-waiting']);
+      const pageToRestore = (savedPage && !callPages.has(savedPage) && document.getElementById(savedPage))
+        ? savedPage
+        : 'page-dashboard';
       goTo(pageToRestore);
     }
   } else {
@@ -3250,14 +3475,31 @@ function isMicEnabledInSettings() {
   } catch(_) { return false; }
 }
 
+// ── Helper: tracciamento mano abilitato nelle impostazioni? ─────────
+function isHandTrackingEnabled() {
+  try {
+    const s = JSON.parse(localStorage.getItem('htl_settings'));
+    // Default true — se la chiave non esiste ancora, il tracciamento è attivo
+    return s && typeof s.handTracking !== 'undefined' ? !!s.handTracking : true;
+  } catch(_) { return true; }
+}
+
+// ── Helper: stato online visibile agli altri utenti? ─────────────────
+function isStatusBadgeEnabled() {
+  try {
+    const s = JSON.parse(localStorage.getItem('htl_settings'));
+    return s && typeof s.statusBadge !== 'undefined' ? !!s.statusBadge : true;
+  } catch(_) { return true; }
+}
+
 // ================================================================
 // SETTINGS
 // ================================================================
 const SETTINGS_KEY = 'htl_settings';
 const DEFAULT_SETTINGS = {
-  subtitleSize: '16px', subtitlePos: 'panel', highContrast: false, confidence: false,
-  langUI: 'it', langSub: 'it', darkMode: false, animations: true, statusBadge: true,
-  autoSave: true, micEnabled: false   // off until explicitly granted
+  subtitleSize: '16px', subtitlePos: 'panel',
+  langUI: 'it', darkMode: false, animations: true, statusBadge: true,
+  autoSave: true, micEnabled: false, handTracking: true
 };
 
 function loadSettings() {
@@ -3311,25 +3553,33 @@ function applySettings(s) {
     if (loader) { loader.classList.remove('loader-simple'); loader.classList.add('loader-detail-mode'); }
   }
   document.querySelectorAll('.badge-green.badge-dot').forEach(el => { el.style.display = s.statusBadge ? '' : 'none'; });
+  // Avvia o ferma il heartbeat in base al toggle "Mostra Stato Online":
+  // se off, il backend scade l'utente a offline dopo ~40 s senza ping.
+  if (s.statusBadge) {
+    if (!_heartbeatInterval && currentUser?.id) startHeartbeat();
+  } else {
+    stopHeartbeat();
+  }
   document.querySelectorAll('.subtitle-text').forEach(el => { el.style.fontSize = s.subtitleSize; });
   document.querySelectorAll('.subtitle-entry').forEach(el => {
-    if (s.highContrast) { el.style.background = 'rgba(0,0,0,0.75)'; el.style.borderRadius = '6px'; el.style.padding = '8px 12px'; }
-    else { el.style.background = ''; el.style.borderRadius = ''; el.style.padding = ''; }
+    el.style.background = ''; el.style.borderRadius = ''; el.style.padding = '';
   });
   const confBadge = document.getElementById('confidence-badge');
-  if (confBadge) confBadge.style.display = s.confidence ? '' : 'none';
+  if (confBadge) confBadge.style.display = 'none';
   applyLangUI(s.langUI);
   _setSelectById('sel-subtitle-size', sizeToOption(s.subtitleSize));
   _setSelectById('sel-subtitle-pos',  posToOption(s.subtitlePos));
   _setSelectById('sel-lang-ui',       s.langUI === 'en' ? 'English' : 'Italiano');
-  _setSelectById('sel-lang-sub',      s.langSub === 'en' ? 'English' : 'Italiano');
-  _syncToggle('toggle-contrast',  s.highContrast);
-  _syncToggle('toggle-confidence',s.confidence);
-  _syncToggle('toggle-dark',      s.darkMode);
-  _syncToggle('toggle-anim',      s.animations);
-  _syncToggle('toggle-status',    s.statusBadge);
-  _syncToggle('toggle-save',      s.autoSave);
-  _syncToggle('toggle-mic-enabled', s.micEnabled);
+  _syncToggle('toggle-dark',          s.darkMode);
+  _syncToggle('toggle-anim',          s.animations);
+  _syncToggle('toggle-status',        s.statusBadge);
+  _syncToggle('toggle-save',          s.autoSave);
+  _syncToggle('toggle-mic-enabled',   s.micEnabled);
+  _syncToggle('toggle-hand-tracking', s.handTracking);
+
+  document.querySelectorAll('[id^="sub-remote-"]').forEach(el => {
+    _applySubtitleSettings(el, s);
+  });
 }
 
 function _syncToggle(id, on) { const el = document.getElementById(id); if (!el) return; if (on) el.classList.add('on'); else el.classList.remove('on'); }
@@ -3350,19 +3600,16 @@ function readSettingsFromUI() {
   const sizeSel = document.getElementById('sel-subtitle-size');
   const posSel  = document.getElementById('sel-subtitle-pos');
   const langUI  = document.getElementById('sel-lang-ui');
-  const langSub = document.getElementById('sel-lang-sub');
   return {
     subtitleSize:  sizeSel ? optionToSize(sizeSel.value) : loadSettings().subtitleSize,
     subtitlePos:   posSel  ? optionToPos(posSel.value)   : loadSettings().subtitlePos,
-    highContrast:  isOn('toggle-contrast'),
-    confidence:    isOn('toggle-confidence'),
     langUI:        langUI  ? (langUI.value === 'English' ? 'en' : 'it')  : loadSettings().langUI,
-    langSub:       langSub ? (langSub.value === 'English' ? 'en' : 'it') : loadSettings().langSub,
     darkMode:      isOn('toggle-dark'),
     animations:    isOn('toggle-anim'),
     statusBadge:   isOn('toggle-status'),
     autoSave:      isOn('toggle-save'),
     micEnabled:    isOn('toggle-mic-enabled'),
+    handTracking:  isOn('toggle-hand-tracking'),
   };
 }
 
@@ -3405,7 +3652,17 @@ function onToggleMicEnabled(btn) {
   }
 }
 
-function saveSettings() { const s = readSettingsFromUI(); persistSettings(s); applySettings(s); showToast('Impostazioni salvate'); }
+function saveSettings() { 
+  const s = readSettingsFromUI(); 
+  persistSettings(s); 
+  applySettings(s); 
+
+  document.querySelectorAll('[id^="sub-remote-"]').forEach(el => {
+    _applySubtitleSettings(el, s);
+  });
+
+  showToast('Impostazioni salvate'); 
+}
 
 // ================================================================
 // i18n
@@ -3468,7 +3725,6 @@ const I18N = {
     'settings.subSizeBig': 'Grande (20px)',
     'settings.subSizeReallyBig': 'Molto Grande (24px)',
     'settings.subPos': 'Posizione Sottotitoli', 'settings.subPosDesc': 'Scegli dove vuoi vedere i sottotitoli durante la chiamata',
-    'settings.subPosSidePanel':'Pannello Laterale',
     'settings.subPosOverlapping':'Sovrapposto',
     'settings.subPosBottom':'In basso',
     'settings.highContrast': 'Alto Contrasto Sottotitoli', 'settings.highContrastDesc': 'Rende il testo più facile da leggere aggiungendo uno sfondo scuro ai sottotitoli',
@@ -3619,7 +3875,6 @@ const I18N = {
     'settings.subSizeBig': 'Big (20px)',
     'settings.subSizeReallyBig': 'Really Big (24px)',
     'settings.subPos': 'Subtitle Position', 'settings.subPosDesc': 'Choose where you want to see subtitles during a call',
-    'settings.subPosSidePanel':'Side Panel',
     'settings.subPosOverlapping':'Overlapping',
     'settings.subPosBottom':'Bottom',
     'settings.highContrast': 'High Contrast Subtitles', 'settings.highContrastDesc': 'Makes text easier to read by adding a dark background behind the subtitles',
@@ -3796,7 +4051,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsPage = document.getElementById('page-settings');
   if (!settingsPage) return;
   const selects = settingsPage.querySelectorAll('select.input');
-  const ids = ['sel-subtitle-size','sel-subtitle-pos','sel-lang-ui','sel-lang-sub','sel-export-fmt'];
+  const ids = ['sel-subtitle-size','sel-subtitle-pos','sel-lang-ui','sel-export-fmt'];
   selects.forEach((sel, i) => {
     if (ids[i]) sel.id = ids[i];
     sel.addEventListener('change', () => { const s = readSettingsFromUI(); applySettings(s); });

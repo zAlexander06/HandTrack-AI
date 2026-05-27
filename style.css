@@ -1721,6 +1721,13 @@ select.input {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  transition: width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+}
+.call-chat-panel.chat-collapsed {
+  width: 0;
+  opacity: 0;
+  border-left: none;
+  pointer-events: none;
 }
 .call-chat-header {
   height: 52px;

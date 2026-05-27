@@ -420,6 +420,51 @@
         </div>
       </div>
 
+      <div id="info" style="display:none;"></div>
+
+      <!-- Floating chat re-open button (shown when chat panel is collapsed) -->
+      <button id="btn-open-chat-float" onclick="toggleCallChat()" title="Apri chat" style="display:none;position:absolute;bottom:90px;right:16px;z-index:20;background:rgba(30,45,70,0.85);border:1px solid rgba(37,99,235,0.45);border-radius:12px;padding:10px 14px;cursor:pointer;align-items:center;gap:8px;color:#93c5fd;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;backdrop-filter:blur(8px);transition:background 0.2s,transform 0.15s;box-shadow:0 4px 16px rgba(0,0,0,0.3);" onmouseenter="this.style.background='rgba(37,99,235,0.3)';" onmouseleave="this.style.background='rgba(30,45,70,0.85)';">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>
+        Chat
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+
+      <!-- Hand tracker video feed (hidden, mirrors video-local stream) -->
+      <video id="webcam" autoplay muted playsinline style="display:none;position:absolute;"></video>
+
+      <!-- LIS landmark overlay canvas -->
+      <canvas id="draw_canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;"></canvas>
+
+      <!-- Subtitle strip (shown during active call) -->
+      <div id="container-sottotitoli" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:10;width:min(680px,90%);display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div id="suggerimenti-box" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;"></div>
+      <div style="background:rgba(0,0,0,0.7);border:1.5px solid transparent;border-radius:10px;padding:8px 18px;display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;">
+          <span id="sottotitoli-testo" style="color:#e2e8f0;font-size:15px;flex:1;min-height:24px;">In attesa di segni…</span>
+
+          <!-- Invia in chat -->
+          <button title="Invia in chat" onclick="
+              const t = document.getElementById('sottotitoli-testo').textContent.trim();
+              if (t && t !== 'In attesa di segni…') {
+                  const inp = document.getElementById('chat-input');
+                  if (inp) {
+                      inp.value = t;
+                      sendChatMessage();
+                  } else {
+                      sendChatMessageDirect(t);
+                  }
+                  if (window.resetFraseAttuale) resetFraseAttuale();
+              }
+          " style="background:rgba(37,99,235,0.25);border:1px solid rgba(37,99,235,0.45);border-radius:6px;cursor:pointer;padding:4px 7px;opacity:0.85;display:flex;align-items:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+
+          <!-- Cancella -->
+          <button id="clearBtn" title="Cancella frase" onclick="if (window.resetFraseAttuale) resetFraseAttuale();" style="background:none;border:none;cursor:pointer;padding:2px;opacity:0.6;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+      </div>
+  </div>
+
       <!-- BOTTOM CONTROLS BAR -->
       <div class="call-controls-bar">
 
@@ -468,6 +513,9 @@
         <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E" style="width:16px;height:16px;" alt="">
         <span style="font-weight:600;font-size:14px;">Chat Testo</span>
         <span id="chat-peer-name" style="margin-left:auto;font-size:12px;color:var(--text3);">…</span>
+        <button id="btn-toggle-chat" onclick="toggleCallChat()" title="Nascondi chat" style="margin-left:10px;background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:var(--text3);transition:background 0.15s,color 0.15s;" onmouseenter="this.style.background='var(--bg3)';this.style.color='var(--text)';" onmouseleave="this.style.background='none';this.style.color='var(--text3)';">
+          <svg id="icon-chat-collapse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       </div>
 
       <!-- Messages list -->
@@ -478,15 +526,6 @@
             <div id="chat-empty-msg" style="font-size:13px;text-align:center;" data-i18n="call.chatEmpty">Nessun messaggio ancora.<br>Inizia la conversazione!</div>
           </div>
         </div>
-      </div>
-
-      <!-- Input area -->
-      <div class="call-chat-input-wrap">
-        <input class="input call-chat-input" id="chat-input" placeholder="Scrivi un messaggio…" data-i18n-placeholder="call.chatPlaceholder"
-               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"/>
-        <button class="call-chat-send-btn" onclick="sendChatMessage()" title="Invia">
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cline x1='22' y1='2' x2='11' y2='13'/%3E%3Cpolygon points='22 2 15 22 11 13 2 9 22 2'/%3E%3C/svg%3E" style="width:15px;height:15px;" alt="">
-        </button>
       </div>
 
     </div><!-- /call-chat-panel -->
@@ -561,21 +600,14 @@
             <div class="settings-row">
               <div><div class="settings-label" data-i18n="settings.subPos">Posizione Sottotitoli</div><div class="settings-desc" data-i18n="settings.subPosDesc">Scegli dove vuoi vedere i sottotitoli durante la chiamata</div></div>
               <select class="input" style="width:140px;">
-                <option data-i18n="settings.subPosSidePanel">Pannello laterale</option>
                 <option data-i18n="settings.subPosOverlapping" selected>Sovrapposto</option>
                 <option data-i18n="settings.subPosBottom">In basso</option>
               </select>
             </div>
-            <div class="settings-row">
-              <div><div class="settings-label" data-i18n="settings.highContrast">Alto Contrasto Sottotitoli</div><div class="settings-desc" data-i18n="settings.highContrastDesc">Rende il testo più facile da leggere aggiungendo uno sfondo scuro ai sottotitoli</div></div>
-              <button class="toggle" id="toggle-contrast" onclick="toggleBtn(this)"></button>
-            </div>
-            <div class="settings-row">
-              <div><div class="settings-label" data-i18n="settings.confidence">Mostra Confidence Score</div><div class="settings-desc" data-i18n="settings.confidenceDesc">Mostra quanto è sicuro il sistema di aver riconosciuto correttamente il gesto</div></div>
-              <button class="toggle" id="toggle-confidence" onclick="toggleBtn(this)"></button>
-            </div>
+
+
           </div>
-          <div class="card">
+          <div class="card mb-4">
             <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
               <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E" style="width:18px;height:18px;">
               <span data-i18n="settings.langTitle">Lingua e Localizzazione</span>
@@ -587,14 +619,32 @@
                 <option>English</option>
               </select>
             </div>
+          </div>
+
+          <div class="card mb-4">
+            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:18px;height:18px;">
+              <span data-i18n="settings.micTitle">Permessi</span>
+            </h3>
             <div class="settings-row">
-              <div><div class="settings-label" data-i18n="settings.langSub">Lingua Sottotitoli LIS</div><div class="settings-desc" data-i18n="settings.langSubDesc">In che lingua vuoi leggere i sottotitoli generati durante la chiamata</div></div>
-              <select class="input" style="width:140px;">
-                <option selected>Italiano</option>
-                <option>English</option>
-              </select>
+              <div>
+                <div class="settings-label" data-i18n="settings.micEnabled">Abilita Microfono nelle Chiamate</div>
+                <div class="settings-desc" data-i18n="settings.micEnabledDesc">Se attivo, l'app userà il microfono durante le chiamate. Puoi comunque silenziarlo in qualsiasi momento anche mentre sei in chiamata.</div>
+              </div>
+              <button class="toggle on" id="toggle-mic-enabled" onclick="onToggleMicEnabled(this)"></button>
+            </div>
+            <div class="settings-row" style="margin-top:12px;">
+              <div>
+                <div class="settings-label" data-i18n="settings.handTracking">
+                  Tracciamento Mano
+                  <span style="margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(37,99,235,0.12);color:var(--accent);font-weight:600;vertical-align:middle;" data-i18n="settings.handTrackingBadge">Facoltativo</span>
+                </div>
+                <div class="settings-desc" data-i18n="settings.handTrackingDesc">Abilita il riconoscimento gesti LIS e la generazione di sottotitoli in tempo reale.</div>
+              </div>
+              <button class="toggle on" id="toggle-hand-tracking" onclick="toggleBtn(this)"></button>
             </div>
           </div>
+
         </div>
         <div>
           <div class="card mb-4">
@@ -626,29 +676,7 @@
             </div>
 
           </div>
-          <div class="card mb-4">
-            <h3 style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E" style="width:18px;height:18px;">
-              <span data-i18n="settings.micTitle">Permessi</span>
-            </h3>
-            <div class="settings-row">
-              <div>
-                <div class="settings-label" data-i18n="settings.micEnabled">Abilita Microfono nelle Chiamate</div>
-                <div class="settings-desc" data-i18n="settings.micEnabledDesc">Se attivo, l'app userà il microfono durante le chiamate. Puoi comunque silenziarlo in qualsiasi momento anche mentre sei in chiamata.</div>
-              </div>
-              <button class="toggle on" id="toggle-mic-enabled" onclick="onToggleMicEnabled(this)"></button>
-            </div>
-            <div class="settings-row" style="margin-top:12px;">
-              <div>
-                <div class="settings-label" data-i18n="settings.handTracking">
-                  Tracciamento Mano
-                  <span style="margin-left:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(37,99,235,0.12);color:var(--accent);font-weight:600;vertical-align:middle;" data-i18n="settings.handTrackingBadge">Facoltativo</span>
-                </div>
-                <div class="settings-desc" data-i18n="settings.handTrackingDesc">Abilita il riconoscimento gesti LIS e la generazione di sottotitoli in tempo reale.</div>
-              </div>
-              <button class="toggle on" id="toggle-hand-tracking" onclick="toggleBtn(this)"></button>
-            </div>
-          </div>
+          
           <div style="display:flex;gap:12px;">
             <button class="btn btn-primary btn-lg w-full" style="justify-content:center;" onclick="saveSettings()" data-i18n="settings.save">Salva Impostazioni</button>
             <button class="btn btn-outline btn-lg" onclick="goTo('page-dashboard')" data-i18n="settings.cancel">Annulla</button>
@@ -1197,7 +1225,6 @@ body.dark .toggle.on { border-color: var(--accent); }
 #sel-subtitle-size,
 #sel-subtitle-pos,
 #sel-lang-ui,
-#sel-lang-sub,
 
 </style>
 <div class="page" id="page-privacy-logged">
@@ -1642,6 +1669,7 @@ body.dark #drawer-footer-btn:hover {
     <polyline points="18 15 12 9 6 15"></polyline>
   </svg>
 </button>
-
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+<script type="module" src="script/base.js"></script>
 </body>
 </html>
