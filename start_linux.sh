@@ -4,7 +4,6 @@ echo "Avvio setup ambiente Completo (Linux/Codespaces)"
 echo "=============================================="
 echo ""
 
-# Sezione Python
 echo "[PYTHON]"
 
 if ! command -v python3.11 &> /dev/null; then
@@ -21,7 +20,6 @@ fi
 
 echo ""
 
-# Ambiente virtuale
 if [ ! -d ".venv" ]; then
     echo "Creazione ambiente virtuale..."
     python3 -m venv .venv
@@ -33,7 +31,6 @@ else
     echo "Ambiente virtuale già esistente."
 fi
 
-# Attivazione venv
 source .venv/bin/activate
 
 echo "Aggiornamento pip..."
@@ -50,7 +47,6 @@ echo ""
 echo "Python pronto."
 echo ""
 
-# Sezione Node.js
 echo "[NODE]"
 
 if ! command -v node &> /dev/null; then

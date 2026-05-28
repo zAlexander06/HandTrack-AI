@@ -5,7 +5,6 @@ chcp 65001 >nul
 echo Avvio setup ambiente Completo
 echo.
 
-:: Sezione Python
 echo [PYTHON]
 
 python --version >nul 2>&1
@@ -19,7 +18,6 @@ if %errorlevel% neq 0 (
 
     del python-installer.exe
 
-    :: Ricontrollo
     python --version >nul 2>&1
     if %errorlevel% neq 0 (
         echo ERRORE: Python installato ma non disponibile nel PATH.
@@ -35,7 +33,6 @@ if %errorlevel% neq 0 (
 
 echo.
 
-:: Ambiente virtuale
 if not exist ".venv" (
     echo Creazione ambiente virtuale con Python 3.11...
 
@@ -49,7 +46,6 @@ if not exist ".venv" (
     echo Ambiente virtuale gia esistente.
 )
 
-:: Attivazione venv
 call .venv\Scripts\activate
 
 echo Aggiornamento pip...
@@ -66,7 +62,6 @@ echo.
 echo Python pronto.
 echo.
 
-:: Sezione Node.js
 echo [NODE]
 
 where node >nul 2>&1
@@ -89,7 +84,6 @@ if %errorlevel% neq 0 (
 echo npm trovato.
 echo.
 
-:: Installazione moduli
 if not exist "node_modules\" (
     echo Installazione moduli Node...
     call npm install
@@ -105,7 +99,6 @@ if not exist "node_modules\" (
 
 echo.
 
-:: Avvio servizio
 echo Avvio frontend...
 start "Frontend" /min cmd /k "npm start"
 
